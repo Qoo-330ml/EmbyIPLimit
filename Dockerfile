@@ -5,8 +5,8 @@ FROM python:3.12-alpine
 WORKDIR /app
 
 # 复制脚本文件和空数据目录结构
-COPY EmbyIPLimit/scripts/ ./scripts/
-COPY EmbyIPLimit/data/ ./data/
+COPY scripts/ ./scripts/
+COPY data/ ./data/
 
 # 安装依赖（请先创建requirements.txt）
 COPY requirements.txt .
