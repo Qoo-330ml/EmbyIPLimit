@@ -1,8 +1,8 @@
 database:
   name: emby_playback.db # 默认数据库，不改动
 emby:
-  server_url: # https://emby.example.com
-  api_key: # your_api_key_here
+  server_url: https://emby.example.com
+  api_key: 12345678
   check_interval: 10
 notifications:
   alert_threshold: 2 # 播放窗口数(需不同IP），达到这个值即禁用
@@ -27,3 +27,4 @@ webhook:
 web:
   admin_username: admin # 管理员用户名
   admin_password: admin123 # 管理员密码（生产环境请修改）
+
