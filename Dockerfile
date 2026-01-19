@@ -14,6 +14,9 @@ COPY requirements.txt .
 # 安装依赖（请先创建requirements.txt）
 RUN pip install --no-cache-dir -r requirements.txt
 
+# 暴露Web服务器端口
+EXPOSE 5000
+
 # 声明数据卷（容器启动时需映射到宿主机）
 VOLUME /app/data
 
