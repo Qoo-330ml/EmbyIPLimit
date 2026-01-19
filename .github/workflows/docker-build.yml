@@ -3,6 +3,8 @@ name: Build and Push Docker Image
 on:
   push:
     branches: [ main ] # 在推送到 main 分支时触发构建
+    paths-ignore:
+      - 'README.md'
   workflow_dispatch: # 允许在 GitHub 页面上手动触发
 
 jobs:
