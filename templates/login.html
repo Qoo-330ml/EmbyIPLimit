@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Emby播放记录查询</title>
+    <title>管理员登录 - EmbyIPLimit</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
+            max-width: 400px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f4f4f4;
@@ -16,14 +16,14 @@
             text-align: center;
             color: #333;
         }
-        .search-form {
+        .login-form {
             background-color: white;
             padding: 30px;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             margin-top: 30px;
         }
-        .search-form input {
+        .login-form input {
             width: 100%;
             padding: 12px;
             margin: 10px 0;
@@ -31,28 +31,28 @@
             border-radius: 4px;
             font-size: 16px;
         }
-        .search-form button {
+        .login-form button {
             width: 100%;
             padding: 12px;
-            background-color: #4CAF50;
+            background-color: #2196F3;
             color: white;
             border: none;
             border-radius: 4px;
             font-size: 16px;
             cursor: pointer;
         }
-        .search-form button:hover {
-            background-color: #45a049;
+        .login-form button:hover {
+            background-color: #0b7dda;
         }
-        .login-link {
-            text-align: right;
-            margin-top: 10px;
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
         }
-        .login-link a {
+        .back-link a {
             color: #0066cc;
             text-decoration: none;
         }
-        .login-link a:hover {
+        .back-link a:hover {
             text-decoration: underline;
         }
         .flash {
@@ -66,24 +66,29 @@
     </style>
 </head>
 <body>
-    <h1>Emby播放记录查询</h1>
+    <h1>管理员登录</h1>
     
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            {% for message in messages %}
-                <div class="flash">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-    
-    <div class="search-form">
-        <form action="/search" method="post">
-            <label for="username">输入您的Emby用户名：</label>
-            <input type="text" id="username" name="username" placeholder="例如：admin" required>
-            <button type="submit">查询播放记录</button>
+    <div class="login-form">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <form action="/login" method="post">
+            <label for="username">用户名：</label>
+            <input type="text" id="username" name="username" required>
+            
+            <label for="password">密码：</label>
+            <input type="password" id="password" name="password" required>
+            
+            <button type="submit">登录</button>
         </form>
-        <div class="login-link">
-            <a href="/login">管理员登录</a>
+        
+        <div class="back-link">
+            <a href="/">返回首页</a>
         </div>
     </div>
 </body>

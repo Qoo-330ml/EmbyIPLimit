@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmbyIPLimit管理员控制台 - EmbyIPLimit</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .logout-btn {
+            background-color: #f44336;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .logout-btn:hover {
+            background-color: #d32f2f;
+        }
+        .config-btn {
+            background-color: #2196F3;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            margin-right: 10px;
+        }
+        .config-btn:hover {
+            background-color: #0b7dda;
+        }
+        .user-table {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.disabled {
+            background-color: #ffcdd2;
+            color: #c62828;
+        }
+        .status.enabled {
+            background-color: #c8e6c9;
+            color: #2e7d32;
+        }
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+        }
+        .ban-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        .ban-btn:hover {
+            background-color: #d32f2f;
+        }
+        .unban-btn {
+            background-color: #4caf50;
+            color: white;
+        }
+        .unban-btn:hover {
+            background-color: #388e3c;
+        }
+        .flash {
+            background-color: #c8e6c9;
+            color: #2e7d32;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #2e7d32;
+        }
+        .empty {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+        form {
+            display: inline;
+        }
+    </style>
+</head>
+<body>
+    <h1>管理员控制台</h1>
+    
+    <div class="admin-header">
+        <h2>用户管理</h2>
+        <div>
+            <a href="/admin/config" class="config-btn">配置管理</a>
+            <a href="/logout" class="logout-btn">退出登录</a>
+        </div>
+    </div>
+    
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="flash">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    <div class="user-table">
+        {% if users %}
+        <table>
+            <thead>
+                <tr>
+                    <th>用户ID</th>
+                    <th>用户名</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.name }}</td>
+                    <td>
+                        <span class="status {{ 'disabled' if user.is_disabled else 'enabled' }}">
+                            {{ '已禁用' if user.is_disabled else '正常' }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if user.is_disabled %}
+                        <form action="/admin/toggle_user" method="post">
+                            <input type="hidden" name="user_id" value="{{ user.id }}">
+                            <input type="hidden" name="action" value="unban">
+                            <button type="submit" class="btn unban-btn">解封</button>
+                        </form>
+                        {% else %}
+                        <form action="/admin/toggle_user" method="post">
+                            <input type="hidden" name="user_id" value="{{ user.id }}">
+                            <input type="hidden" name="action" value="ban">
+                            <button type="submit" class="btn ban-btn">封禁</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty">没有找到用户</div>
+        {% endif %}
+    </div>
+</body>
+</html>

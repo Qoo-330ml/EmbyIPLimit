@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>查询结果 - Emby播放记录</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .result-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+        .user-info {
+            background-color: #e8f5e9;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .ban-info {
+            background-color: #ffebee;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid #d32f2f;
+        }
+        .playback-records {
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .back-link a {
+            color: #0066cc;
+            text-decoration: none;
+            font-size: 16px;
+        }
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+        .empty {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Emby播放记录查询结果</h1>
+    
+    <div class="result-container">
+        <!-- 用户基本信息 -->
+        <div class="user-info">
+            <h3>用户信息</h3>
+            <p>用户名: {{ username }}</p>
+            <p>用户ID: {{ user_id }}</p>
+            <p>显示名称: {{ user_info.get('DisplayName', '未知') }}</p>
+            <p>禁用状态: {{ '已禁用' if user_info.get('Policy', {}).get('IsDisabled', False) else '正常' }}</p>
+        </div>
+        
+        <!-- 封禁信息 -->
+        {% if ban_info %}
+        <div class="ban-info">
+            <h3>封禁信息</h3>
+            <p>封禁时间: {{ ban_info[0] }}</p>
+            <p>触发IP: {{ ban_info[1] }}</p>
+            <p>并发会话数: {{ ban_info[2] }}</p>
+            <p>封禁原因: 检测到异常登录行为</p>
+        </div>
+        {% endif %}
+        
+        <!-- 播放记录 -->
+        <div class="playback-records">
+            <h3>最近播放记录</h3>
+            {% if playback_records %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>IP地址</th>
+                        <th>设备</th>
+                        <th>客户端</th>
+                        <th>播放内容</th>
+                        <th>开始时间</th>
+                        <th>结束时间</th>
+                        <th>时长(秒)</th>
+                        <th>位置</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in playback_records %}
+                    <tr>
+                        <td>{{ record[1] }}</td>
+                        <td>{{ record[2] }}</td>
+                        <td>{{ record[3] }}</td>
+                        <td>{{ record[4] }}</td>
+                        <td>{{ record[5] }}</td>
+                        <td>{{ record[6] if record[6] else '播放中' }}</td>
+                        <td>{{ record[7] if record[7] else '-' }}</td>
+                        <td>{{ record[8] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty">没有找到播放记录</div>
+            {% endif %}
+        </div>
+        
+        <div class="back-link">
+            <a href="/">返回首页</a>
+        </div>
+    </div>
+</body>
+</html>
