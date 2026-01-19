@@ -7,6 +7,7 @@ WORKDIR /app
 # 复制脚本文件和空数据目录结构
 COPY scripts/ ./scripts/
 COPY data/ ./data/
+COPY templates/ ./templates/
 
 # 安装依赖（请先创建requirements.txt）
 COPY requirements.txt .
