@@ -81,6 +81,56 @@ class DatabaseManager:
                 session_data.get('location', '未知位置')
             ))
             conn.commit()
+    
+    def get_user_playback_records(self, user_id, limit=10):
+        """获取用户最近的播放记录"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute('''
+                SELECT session_id, ip_address, device_name, client_type, media_name, 
+                       start_time, end_time, duration, location
+                FROM playback_history
+                WHERE user_id = ?
+                ORDER BY start_time DESC
+                LIMIT ?
+            ''', (user_id, limit))
+            return cursor.fetchall()
+    
+    def get_user_ban_info(self, user_id):
+        """获取用户封禁信息"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute('''
+                SELECT timestamp, trigger_ip, active_sessions, action
+                FROM security_log
+                WHERE user_id = ? AND action = 'DISABLE'
+                ORDER BY timestamp DESC
+                LIMIT 1
+            ''', (user_id,))
+            return cursor.fetchone()
+    
+    def get_playback_records_by_username(self, username, limit=10):
+        """通过用户名获取最近的播放记录"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute('''
+                SELECT session_id, ip_address, device_name, client_type, media_name, 
+                       start_time, end_time, duration, location
+                FROM playback_history
+                WHERE username = ?
+                ORDER BY start_time DESC
+                LIMIT ?
+            ''', (username, limit))
+            return cursor.fetchall()
+    
+    def get_ban_info_by_username(self, username):
+        """通过用户名获取封禁信息"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute('''
+                SELECT timestamp, trigger_ip, active_sessions, action
+                FROM security_log
+                WHERE username = ? AND action = 'DISABLE'
+                ORDER BY timestamp DESC
+                LIMIT 1
+            ''', (username,))
+            return cursor.fetchone()
 
     def record_session_end(self, session_id, end_time, duration):
         """记录播放结束"""

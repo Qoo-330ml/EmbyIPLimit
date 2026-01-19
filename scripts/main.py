@@ -3,6 +3,7 @@ from database import DatabaseManager
 from emby_client import EmbyClient
 from security import EmbySecurity
 from monitor import EmbyMonitor
+from web_server import WebServer
 
 def main():
     print("start")
@@ -27,6 +28,17 @@ def main():
         security_client=security,
         config=config
     )
+    
+    # 初始化并启动Web服务器
+    web_server = WebServer(
+        db_manager=db_manager,
+        emby_client=emby_client,
+        security_client=security,
+        config=config
+    )
+    web_server.start()
+    
+    # 运行监控服务
     monitor.run()
 
 if __name__ == '__main__':

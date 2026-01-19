@@ -36,3 +36,15 @@ class EmbyClient:
         if item.get('SeriesName'):
             return f"{item['SeriesName']} S{item['ParentIndexNumber']}E{item['IndexNumber']}"
         return item.get('Name', '未知内容')
+    
+    def get_users(self):
+        """获取所有用户列表"""
+        try:
+            response = self.session.get(
+                f"{self.server_url}/emby/Users",
+                timeout=5
+            )
+            return response.json()
+        except Exception as e:
+            print(f"获取用户列表失败: {str(e)}")
+            return []

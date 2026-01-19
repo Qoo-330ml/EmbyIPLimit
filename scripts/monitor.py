@@ -24,6 +24,7 @@ class EmbyMonitor:
         self.auto_disable = config['security']['auto_disable']
         self.alert_threshold = config['notifications']['alert_threshold']
         self.alerts_enabled = config['notifications']['enable_alerts']
+        self.ipv6_prefix_length = config['security'].get('ipv6_prefix_length', 64)
         
         # 初始化Webhook通知器
         self.webhook_notifier = None
@@ -93,6 +94,79 @@ class EmbyMonitor:
             return True
         except (socket.error, ValueError):
             return False
+    
+    def _get_ipv6_prefix(self, ipv6_address, prefix_length):
+        """获取IPv6地址的前缀
+        
+        Args:
+            ipv6_address: IPv6地址字符串
+            prefix_length: 前缀长度（比特）
+            
+        Returns:
+            前缀字符串，例如 "2409:8a55:9429:9a90::"（64位前缀）
+        """
+        if not ipv6_address or not self._is_ipv6(ipv6_address):
+            return ipv6_address
+            
+        try:
+            # 将IPv6地址转换为二进制数据
+            binary_data = socket.inet_pton(socket.AF_INET6, ipv6_address)
+            
+            # 计算需要保留的字节数
+            prefix_bytes = prefix_length // 8
+            if prefix_length % 8 != 0:
+                prefix_bytes += 1
+            
+            # 获取前缀字节
+            prefix_binary = binary_data[:prefix_bytes]
+            
+            # 计算需要保留的段数（每个段16位=2字节）
+            prefix_segments = prefix_length // 16
+            if prefix_length % 16 != 0:
+                prefix_segments += 1
+            
+            # 将前缀字节转换回IPv6地址字符串
+            prefix_address = socket.inet_ntop(socket.AF_INET6, prefix_binary.ljust(16, b'\x00'))
+            
+            # 提取前缀部分
+            segments = prefix_address.split(':')
+            prefix_segments = segments[:prefix_segments]
+            
+            # 确保格式正确（添加::如果需要）
+            if len(prefix_segments) < 8:
+                prefix_segments.append('')
+            
+            return ':'.join(prefix_segments)
+            
+        except Exception:
+            return ipv6_address
+    
+    def _is_same_network(self, ip1, ip2):
+        """判断两个IP地址是否属于同一网络
+        
+        Args:
+            ip1: 第一个IP地址
+            ip2: 第二个IP地址
+            
+        Returns:
+            True如果属于同一网络，否则False
+        """
+        if ip1 == ip2:
+            return True
+            
+        # 检查是否都是IPv6地址
+        if self._is_ipv6(ip1) and self._is_ipv6(ip2):
+            # 比较前缀
+            prefix1 = self._get_ipv6_prefix(ip1, self.ipv6_prefix_length)
+            prefix2 = self._get_ipv6_prefix(ip2, self.ipv6_prefix_length)
+            return prefix1 == prefix2
+        
+        # 检查是否都是IPv4地址（直接比较）
+        if self._is_ipv4(ip1) and self._is_ipv4(ip2):
+            return ip1 == ip2
+        
+        # 混合类型，认为不是同一网络
+        return False
 
     def process_sessions(self):
         """核心会话处理逻辑"""
@@ -123,10 +197,8 @@ class EmbyMonitor:
             ip_address = self._extract_ip_address(session.get('RemoteEndPoint', ''))
             username = user_info.get('Name', '未知用户').strip()
 
-            # 白名单检查
-            if username.lower() in self.whitelist:
-                print(f"⚪ 白名单用户 [{username}] 跳过监控")
-                return
+            # 白名单检查 - 记录信息但不封禁
+            is_whitelist = username.lower() in self.whitelist
 
             # 获取媒体信息
             media_item = session.get('NowPlayingItem', {})
@@ -152,7 +224,10 @@ class EmbyMonitor:
             
             # 显示IP地址类型信息
             ip_type = "IPv6" if self._is_ipv6(ip_address) else "IPv4" if self._is_ipv4(ip_address) else "未知"
-            print(f"[▶] {username} | 设备: {session_data['device']} | IP: {ip_address} ({ip_type}) | 位置: {location} | 内容: {session_data['media']}")
+            if is_whitelist:
+                print(f"[▶] {username} (白名单) | 设备: {session_data['device']} | IP: {ip_address} ({ip_type}) | 位置: {location} | 内容: {session_data['media']}")
+            else:
+                print(f"[▶] {username} | 设备: {session_data['device']} | IP: {ip_address} ({ip_type}) | 位置: {location} | 内容: {session_data['media']}")
             
             # 触发异常检测
             self._check_login_abnormality(user_id, ip_address)
@@ -213,13 +288,21 @@ class EmbyMonitor:
         if not self.alerts_enabled:
             return
         
-        existing_ips = set()
+        existing_networks = set()
         for sess in self.active_sessions.values():
-            if sess['user_id'] == user_id and sess['ip'] != new_ip:
-                existing_ips.add(sess['ip'])
+            if sess['user_id'] == user_id:
+                existing_ip = sess['ip']
+                # 如果是同一网络，跳过
+                if not self._is_same_network(existing_ip, new_ip):
+                    # 对于IPv6，存储网络前缀
+                    if self._is_ipv6(existing_ip):
+                        network = self._get_ipv6_prefix(existing_ip, self.ipv6_prefix_length)
+                    else:
+                        network = existing_ip
+                    existing_networks.add(network)
         
-        if len(existing_ips) >= (self.alert_threshold - 1):
-            self._trigger_alert(user_id, new_ip, len(existing_ips)+1)
+        if len(existing_networks) >= (self.alert_threshold - 1):
+            self._trigger_alert(user_id, new_ip, len(existing_networks)+1)
 
     def _trigger_alert(self, user_id, trigger_ip, session_count):
         """触发安全告警"""

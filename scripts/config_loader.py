@@ -65,7 +65,7 @@ def load_config():
         print(f"📄 配置文件已生成于: {config_file}，请填写必要项后重启容器")
     
     # 加载用户配置
-    with open(config_file, 'r') as f:
+    with open(config_file, 'r', encoding='utf-8') as f:
         user_config = yaml.safe_load(f) or {}
     
     # 深度合并配置
@@ -94,3 +94,31 @@ def load_config():
         exit(1)
     
     return config
+
+def save_config(config):
+    """保存配置到文件"""
+    data_dir = get_data_dir()
+    config_file = os.path.join(data_dir, 'config.yaml')
+    
+    try:
+        with open(config_file, 'w', encoding='utf-8') as f:
+            yaml.dump(config, f, default_flow_style=False, allow_unicode=True, indent=2)
+        return True
+    except Exception as e:
+        print(f"保存配置文件失败: {e}")
+        return False
+
+def get_raw_config():
+    """获取原始配置文件内容（用于编辑）"""
+    data_dir = get_data_dir()
+    config_file = os.path.join(data_dir, 'config.yaml')
+    
+    if not os.path.exists(config_file):
+        return ""
+    
+    try:
+        with open(config_file, 'r', encoding='utf-8') as f:
+            return f.read()
+    except Exception as e:
+        print(f"读取配置文件失败: {e}")
+        return ""
