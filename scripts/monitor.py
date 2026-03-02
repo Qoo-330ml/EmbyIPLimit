@@ -256,29 +256,19 @@ class EmbyMonitor:
         if not ip_address:
             return "未知位置"
         
-        # 支持IPv4和IPv6地址的地理位置查询
+        # 使用 ip138 包查询 IP 归属地
         try:
-            api_url = f"https://api.vore.top/api/IPdata?ip={ip_address}"
-            response = requests.get(api_url)
-            if response.status_code == 200:
-                data = response.json()
-                if data['code'] == 200 and 'ipdata' in data:
-                    ipdata = data['ipdata']
-                    loc_parts = []
-                    if ipdata.get('info1'):
-                        loc_parts.append(ipdata['info1'])
-                    if ipdata.get('info2'):
-                        loc_parts.append(ipdata['info2'])
-                    if ipdata.get('info3'):
-                        loc_parts.append(ipdata['info3'])
-                    if loc_parts:
-                        return ', '.join(loc_parts)
-                    else:
-                        return "未知区域"
-                else:
-                    return "未知区域"
+            from ip138.ip138 import ip138
+            result = ip138(ip_address)
+            
+            # 检查是否获取到归属地信息
+            if "归属地" in result:
+                return result["归属地"]
+            elif "提示" in result:
+                # 可能是公共DNS，返回提示信息
+                return result.get("页面标题", "未知位置")
             else:
-                return "解析失败"
+                return "未知区域"
         except Exception as e:
             print(f"📍 解析 {ip_address} 失败: {str(e)}")
             return "解析失败"
