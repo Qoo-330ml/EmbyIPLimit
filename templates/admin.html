@@ -47,6 +47,19 @@
         .config-btn:hover {
             background-color: #0b7dda;
         }
+        .search-btn {
+            background-color: #4caf50;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            margin-right: 10px;
+        }
+        .search-btn:hover {
+            background-color: #45a049;
+        }
         .user-table {
             background-color: white;
             padding: 20px;
@@ -151,7 +164,7 @@
                 padding: 4px 8px;
                 font-size: 12px;
             }
-            .config-btn, .logout-btn {
+            .config-btn, .logout-btn, .search-btn {
                 padding: 6px 12px;
                 font-size: 12px;
             }
@@ -164,6 +177,7 @@
     <div class="admin-header">
         <h2>👥 用户管理</h2>
         <div>
+            <a href="/" class="search-btn">🔍 返回查询</a>
             <a href="/admin/config" class="config-btn">⚙️ 配置管理</a>
             <a href="/logout" class="logout-btn">🚪 退出登录</a>
         </div>
