@@ -79,6 +79,10 @@ class WebServer:
         @self.app.route('/login', methods=['GET', 'POST'])
         def login():
             """管理员登录"""
+            # 如果用户已登录，直接跳转到管理员页面
+            if current_user.is_authenticated:
+                return redirect(url_for('admin'))
+            
             if request.method == 'POST':
                 username = request.form.get('username')
                 password = request.form.get('password')
