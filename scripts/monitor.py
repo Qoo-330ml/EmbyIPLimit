@@ -252,18 +252,29 @@ class EmbyMonitor:
             print(f"❌ 结束记录失败: {str(e)}")
 
     def _get_location(self, ip_address):
-        """解析地理位置"""
+        """解析地理位置、运营商和IP类型"""
         if not ip_address:
             return "未知位置"
-        
-        # 使用 ip138 包查询 IP 归属地
+
+        # 使用 ip138 包查询 IP 信息
         try:
             from ip138.ip138 import ip138
             result = ip138(ip_address)
-            
+
             # 检查是否获取到归属地信息
             if "归属地" in result:
-                return result["归属地"]
+                location = result["归属地"]
+                isp = result.get("运营商", "")
+                ip_type = result.get("iP类型", "")
+
+                # 组合信息：归属地 | 运营商 | IP类型
+                info_parts = [location]
+                if isp:
+                    info_parts.append(isp)
+                if ip_type:
+                    info_parts.append(ip_type)
+
+                return " | ".join(info_parts)
             elif "提示" in result:
                 # 可能是公共DNS，返回提示信息
                 return result.get("页面标题", "未知位置")

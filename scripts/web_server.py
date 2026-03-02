@@ -243,21 +243,20 @@ class WebServer:
         try:
             # 从Emby获取所有用户
             users = self.emby_client.get_users()
-            
-            # 获取每个用户的封禁状态
+
+            # 直接从返回数据中提取封禁状态，避免额外的API调用
             users_with_status = []
             for user in users:
                 user_id = user.get('Id')
-                # 检查用户是否被禁用
-                user_info = self.emby_client.get_user_info(user_id)
-                is_disabled = user_info.get('Policy', {}).get('IsDisabled', False)
-                
+                # 直接从用户数据中获取Policy.IsDisabled，不需要额外请求
+                is_disabled = user.get('Policy', {}).get('IsDisabled', False)
+
                 users_with_status.append({
                     'id': user_id,
                     'name': user.get('Name'),
                     'is_disabled': is_disabled
                 })
-            
+
             return users_with_status
         except Exception as e:
             print(f"获取用户列表失败: {e}")
