@@ -283,9 +283,9 @@ class WebServer:
     def _run_server(self):
         """在线程中运行Flask服务器"""
         try:
-            # 使用werkzeug的run_simple以支持线程停止
-            from werkzeug.serving import run_simple
-            run_simple('0.0.0.0', 5000, self.app, use_reloader=False)
+            # 使用waitress作为生产级WSGI服务器
+            from waitress import serve
+            serve(self.app, host='0.0.0.0', port=5000, threads=10)
         except Exception as e:
             print(f"Web服务器运行错误: {e}")
             self.running = False
