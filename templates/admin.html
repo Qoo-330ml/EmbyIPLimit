@@ -1178,12 +1178,26 @@
         }
 
         // 用户组管理功能
-        let userGroups = JSON.parse(localStorage.getItem('userGroups') || '[]');
+        let userGroups = [];
         let allUsers = JSON.parse('{{ users | tojson | safe }}');
+
+        // 从服务器加载用户组
+        async function loadUserGroups() {
+            try {
+                const response = await fetch('/admin/api/user_groups');
+                const data = await response.json();
+                if (data.success) {
+                    userGroups = data.groups;
+                    renderUserGroupList();
+                }
+            } catch (error) {
+                console.error('加载用户组失败:', error);
+            }
+        }
 
         function openUserGroupModal() {
             document.getElementById('userGroupModal').style.display = 'block';
-            renderUserGroupList();
+            loadUserGroups();
         }
 
         function closeUserGroupModal() {
@@ -1217,7 +1231,7 @@
             });
         }
 
-        function addGroup() {
+        async function addGroup() {
             const input = document.getElementById('newGroupName');
             const name = input.value.trim();
 
@@ -1232,26 +1246,53 @@
                 return;
             }
 
-            const newGroup = {
-                id: 'group_' + Date.now(),
-                name: name,
-                members: []
-            };
+            const groupId = 'group_' + Date.now();
 
-            userGroups.push(newGroup);
-            localStorage.setItem('userGroups', JSON.stringify(userGroups));
-            input.value = '';
-            renderUserGroupList();
+            try {
+                const response = await fetch('/admin/api/user_groups', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        group_id: groupId,
+                        name: name
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    input.value = '';
+                    await loadUserGroups();
+                } else {
+                    alert(data.error || '创建失败');
+                }
+            } catch (error) {
+                console.error('创建用户组失败:', error);
+                alert('创建失败，请重试');
+            }
         }
 
-        function deleteGroup(groupId) {
+        async function deleteGroup(groupId) {
             if (!confirm('确定要删除该用户组吗？')) {
                 return;
             }
 
-            userGroups = userGroups.filter(g => g.id !== groupId);
-            localStorage.setItem('userGroups', JSON.stringify(userGroups));
-            renderUserGroupList();
+            try {
+                const response = await fetch(`/admin/api/user_groups/${groupId}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    await loadUserGroups();
+                } else {
+                    alert(data.error || '删除失败');
+                }
+            } catch (error) {
+                console.error('删除用户组失败:', error);
+                alert('删除失败，请重试');
+            }
         }
 
         // 用户组详细管理功能
@@ -1316,7 +1357,7 @@
             });
         }
 
-        function addMemberToGroup() {
+        async function addMemberToGroup() {
             const select = document.getElementById('addMemberSelect');
             const userId = select.value;
 
@@ -1325,25 +1366,59 @@
                 return;
             }
 
-            const group = userGroups.find(g => g.id === currentGroupId);
-            if (group) {
-                if (!group.members) group.members = [];
-                group.members.push(userId);
-                localStorage.setItem('userGroups', JSON.stringify(userGroups));
-                renderMemberList();
-                updateAddMemberSelect();
-                renderUserGroupList();
+            try {
+                const response = await fetch(`/admin/api/user_groups/${currentGroupId}/members`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: userId
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // 更新本地数据
+                    const group = userGroups.find(g => g.id === currentGroupId);
+                    if (group) {
+                        if (!group.members) group.members = [];
+                        group.members.push(userId);
+                    }
+                    renderMemberList();
+                    updateAddMemberSelect();
+                    renderUserGroupList();
+                } else {
+                    alert(data.error || '添加失败');
+                }
+            } catch (error) {
+                console.error('添加成员失败:', error);
+                alert('添加失败，请重试');
             }
         }
 
-        function removeMemberFromGroup(userId) {
-            const group = userGroups.find(g => g.id === currentGroupId);
-            if (group && group.members) {
-                group.members = group.members.filter(id => id !== userId);
-                localStorage.setItem('userGroups', JSON.stringify(userGroups));
-                renderMemberList();
-                updateAddMemberSelect();
-                renderUserGroupList();
+        async function removeMemberFromGroup(userId) {
+            try {
+                const response = await fetch(`/admin/api/user_groups/${currentGroupId}/members/${userId}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // 更新本地数据
+                    const group = userGroups.find(g => g.id === currentGroupId);
+                    if (group && group.members) {
+                        group.members = group.members.filter(id => id !== userId);
+                    }
+                    renderMemberList();
+                    updateAddMemberSelect();
+                    renderUserGroupList();
+                } else {
+                    alert(data.error || '移除失败');
+                }
+            } catch (error) {
+                console.error('移除成员失败:', error);
+                alert('移除失败，请重试');
             }
         }
 

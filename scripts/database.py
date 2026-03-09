@@ -77,7 +77,29 @@ class DatabaseManager:
                 # 列不存在，需要添加
                 conn.execute('ALTER TABLE user_expiry ADD COLUMN never_expire INTEGER DEFAULT 0')
                 conn.commit()
-            
+
+            # 用户组表
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS user_groups (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    group_id TEXT NOT NULL UNIQUE,
+                    name TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+
+            # 用户组成员表
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS user_group_members (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    group_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(group_id, user_id)
+                )
+            ''')
+
             conn.commit()
 
     def record_session_start(self, session_data):
@@ -246,3 +268,75 @@ class DatabaseManager:
                 DELETE FROM user_expiry WHERE user_id = ?
             ''', (user_id,))
             conn.commit()
+
+    # ==================== 用户组管理方法 ====================
+
+    def create_user_group(self, group_id, name):
+        """创建用户组"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('''
+                INSERT INTO user_groups (group_id, name, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+            ''', (group_id, name))
+            conn.commit()
+
+    def delete_user_group(self, group_id):
+        """删除用户组"""
+        with sqlite3.connect(self.db_path) as conn:
+            # 先删除组成员
+            conn.execute('DELETE FROM user_group_members WHERE group_id = ?', (group_id,))
+            # 再删除组
+            conn.execute('DELETE FROM user_groups WHERE group_id = ?', (group_id,))
+            conn.commit()
+
+    def get_all_user_groups(self):
+        """获取所有用户组及其成员"""
+        with sqlite3.connect(self.db_path) as conn:
+            # 获取所有组
+            cursor = conn.execute('''
+                SELECT group_id, name FROM user_groups ORDER BY created_at
+            ''')
+            groups = []
+            for row in cursor.fetchall():
+                group_id, name = row
+                # 获取该组的成员
+                member_cursor = conn.execute('''
+                    SELECT user_id FROM user_group_members WHERE group_id = ?
+                ''', (group_id,))
+                members = [m[0] for m in member_cursor.fetchall()]
+                groups.append({
+                    'id': group_id,
+                    'name': name,
+                    'members': members
+                })
+            return groups
+
+    def add_user_to_group(self, group_id, user_id):
+        """添加用户到组"""
+        with sqlite3.connect(self.db_path) as conn:
+            try:
+                conn.execute('''
+                    INSERT INTO user_group_members (group_id, user_id)
+                    VALUES (?, ?)
+                ''', (group_id, user_id))
+                conn.commit()
+                return True
+            except sqlite3.IntegrityError:
+                # 用户已在组中
+                return False
+
+    def remove_user_from_group(self, group_id, user_id):
+        """从组中移除用户"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('''
+                DELETE FROM user_group_members WHERE group_id = ? AND user_id = ?
+            ''', (group_id, user_id))
+            conn.commit()
+
+    def get_group_members(self, group_id):
+        """获取组的成员列表"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute('''
+                SELECT user_id FROM user_group_members WHERE group_id = ?
+            ''', (group_id,))
+            return [row[0] for row in cursor.fetchall()]

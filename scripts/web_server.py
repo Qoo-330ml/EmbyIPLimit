@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import threading
 import time
@@ -340,6 +340,74 @@ class WebServer:
                 flash(f'{action_text}完成：成功 {success_count} 个，失败 {fail_count} 个')
 
             return redirect(url_for('admin'))
+
+        # ==================== 用户组管理 API ====================
+
+        @self.app.route('/admin/api/user_groups', methods=['GET'])
+        @login_required
+        def get_user_groups():
+            """获取所有用户组"""
+            try:
+                groups = self.db_manager.get_all_user_groups()
+                return jsonify({'success': True, 'groups': groups})
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)}), 500
+
+        @self.app.route('/admin/api/user_groups', methods=['POST'])
+        @login_required
+        def create_user_group():
+            """创建用户组"""
+            try:
+                data = request.get_json()
+                group_id = data.get('group_id')
+                name = data.get('name')
+
+                if not group_id or not name:
+                    return jsonify({'success': False, 'error': '参数错误'}), 400
+
+                self.db_manager.create_user_group(group_id, name)
+                return jsonify({'success': True, 'message': '用户组创建成功'})
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)}), 500
+
+        @self.app.route('/admin/api/user_groups/<group_id>', methods=['DELETE'])
+        @login_required
+        def delete_user_group(group_id):
+            """删除用户组"""
+            try:
+                self.db_manager.delete_user_group(group_id)
+                return jsonify({'success': True, 'message': '用户组删除成功'})
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)}), 500
+
+        @self.app.route('/admin/api/user_groups/<group_id>/members', methods=['POST'])
+        @login_required
+        def add_group_member(group_id):
+            """添加成员到用户组"""
+            try:
+                data = request.get_json()
+                user_id = data.get('user_id')
+
+                if not user_id:
+                    return jsonify({'success': False, 'error': '参数错误'}), 400
+
+                result = self.db_manager.add_user_to_group(group_id, user_id)
+                if result:
+                    return jsonify({'success': True, 'message': '成员添加成功'})
+                else:
+                    return jsonify({'success': False, 'error': '成员已在组中'}), 400
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)}), 500
+
+        @self.app.route('/admin/api/user_groups/<group_id>/members/<user_id>', methods=['DELETE'])
+        @login_required
+        def remove_group_member(group_id, user_id):
+            """从用户组移除成员"""
+            try:
+                self.db_manager.remove_user_from_group(group_id, user_id)
+                return jsonify({'success': True, 'message': '成员移除成功'})
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)}), 500
 
         @self.app.route('/admin/config')
         @login_required
