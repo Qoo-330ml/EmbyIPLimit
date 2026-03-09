@@ -50,10 +50,15 @@ class WebServer:
             all_active_sessions = self._get_all_active_sessions()
             return render_template('index.html', all_active_sessions=all_active_sessions)
         
-        @self.app.route('/search', methods=['POST'])
+        @self.app.route('/search', methods=['GET', 'POST'])
         def search():
             """用户搜索接口"""
-            username = request.form.get('username')
+            # 支持 GET 和 POST 两种方法
+            if request.method == 'POST':
+                username = request.form.get('username')
+            else:
+                username = request.args.get('username')
+
             if not username:
                 flash('请输入用户名')
                 return redirect(url_for('index'))
@@ -115,9 +120,169 @@ class WebServer:
         @login_required
         def admin():
             """管理员页面 - 用户列表"""
-            users = self._get_all_users()
+            users = self._get_all_users_with_expiry()
             return render_template('admin.html', users=users)
-        
+
+        @self.app.route('/admin/set_expiry', methods=['POST'])
+        @login_required
+        def set_expiry():
+            """设置用户到期时间"""
+            user_id = request.form.get('user_id')
+            expiry_date = request.form.get('expiry_date')
+
+            if not user_id:
+                flash('参数错误', 'error')
+                return redirect(url_for('admin'))
+
+            try:
+                if expiry_date:
+                    # 验证日期格式
+                    from datetime import datetime
+                    datetime.strptime(expiry_date, '%Y-%m-%d')
+                    self.db_manager.set_user_expiry(user_id, expiry_date)
+                    flash(f'用户到期时间已设置为 {expiry_date}', 'success')
+                else:
+                    # 清除到期时间
+                    self.db_manager.clear_user_expiry(user_id)
+                    flash('用户到期时间已清除', 'success')
+            except ValueError:
+                flash('日期格式错误', 'error')
+            except Exception as e:
+                flash(f'设置到期时间失败: {str(e)}', 'error')
+
+            return redirect(url_for('admin'))
+
+        @self.app.route('/admin/set_never_expire', methods=['POST'])
+        @login_required
+        def set_never_expire():
+            """设置用户永不过期"""
+            user_id = request.form.get('user_id')
+            never_expire = request.form.get('never_expire') == '1'
+
+            if not user_id:
+                flash('参数错误', 'error')
+                return redirect(url_for('admin'))
+
+            try:
+                self.db_manager.set_user_never_expire(user_id, never_expire)
+                if never_expire:
+                    flash('用户已设置为永不过期', 'success')
+                else:
+                    flash('用户永不过期状态已取消', 'success')
+            except Exception as e:
+                flash(f'设置失败: {str(e)}', 'error')
+
+            return redirect(url_for('admin'))
+
+        @self.app.route('/admin/batch_set_expiry', methods=['POST'])
+        @login_required
+        def batch_set_expiry():
+            """批量设置用户到期时间（增加天数）"""
+            user_ids = request.form.getlist('user_ids')
+            days = request.form.get('days', type=int)
+
+            if not user_ids or days is None:
+                flash('参数错误', 'error')
+                return redirect(url_for('admin'))
+
+            try:
+                from datetime import datetime, timedelta
+
+                success_count = 0
+                fail_count = 0
+
+                for user_id in user_ids:
+                    try:
+                        # 获取当前到期时间
+                        current_expiry = self.db_manager.get_user_expiry(user_id)
+
+                        if current_expiry:
+                            # 在现有日期基础上增加
+                            current_date = datetime.strptime(current_expiry, '%Y-%m-%d')
+                        else:
+                            # 从今天开始计算
+                            current_date = datetime.now()
+
+                        # 增加天数
+                        new_date = current_date + timedelta(days=days)
+                        new_expiry_date = new_date.strftime('%Y-%m-%d')
+
+                        self.db_manager.set_user_expiry(user_id, new_expiry_date)
+                        success_count += 1
+                    except Exception:
+                        fail_count += 1
+
+                if fail_count == 0:
+                    flash(f'成功为 {success_count} 个用户增加 {days} 天到期时间', 'success')
+                else:
+                    flash(f'批量设置完成：成功 {success_count} 个，失败 {fail_count} 个', 'warning')
+
+            except Exception as e:
+                flash(f'批量设置到期时间失败: {str(e)}', 'error')
+
+            return redirect(url_for('admin'))
+
+        @self.app.route('/admin/batch_clear_expiry', methods=['POST'])
+        @login_required
+        def batch_clear_expiry():
+            """批量清除用户到期时间"""
+            user_ids = request.form.getlist('user_ids')
+
+            if not user_ids:
+                flash('参数错误', 'error')
+                return redirect(url_for('admin'))
+
+            success_count = 0
+            fail_count = 0
+
+            for user_id in user_ids:
+                try:
+                    self.db_manager.clear_user_expiry(user_id)
+                    success_count += 1
+                except Exception:
+                    fail_count += 1
+
+            if fail_count == 0:
+                flash(f'成功清除 {success_count} 个用户的到期时间', 'success')
+            else:
+                flash(f'批量清除完成：成功 {success_count} 个，失败 {fail_count} 个', 'warning')
+
+            return redirect(url_for('admin'))
+
+        @self.app.route('/admin/batch_set_never_expire', methods=['POST'])
+        @login_required
+        def batch_set_never_expire():
+            """批量设置用户永不过期"""
+            user_ids = request.form.getlist('user_ids')
+            cancel = request.form.get('cancel') == '1'
+
+            if not user_ids:
+                flash('参数错误', 'error')
+                return redirect(url_for('admin'))
+
+            success_count = 0
+            fail_count = 0
+
+            for user_id in user_ids:
+                try:
+                    self.db_manager.set_user_never_expire(user_id, not cancel)
+                    success_count += 1
+                except Exception:
+                    fail_count += 1
+
+            if cancel:
+                if fail_count == 0:
+                    flash(f'成功取消 {success_count} 个用户的永不过期状态', 'success')
+                else:
+                    flash(f'批量取消完成：成功 {success_count} 个，失败 {fail_count} 个', 'warning')
+            else:
+                if fail_count == 0:
+                    flash(f'成功设置 {success_count} 个用户为永不过期', 'success')
+                else:
+                    flash(f'批量设置完成：成功 {success_count} 个，失败 {fail_count} 个', 'warning')
+
+            return redirect(url_for('admin'))
+
         @self.app.route('/admin/toggle_user', methods=['POST'])
         @login_required
         def toggle_user():
@@ -139,16 +304,50 @@ class WebServer:
                 flash(f'用户已成功{"封禁" if action == "ban" else "解封"}')
             else:
                 flash(f'用户{"封禁" if action == "ban" else "解封"}失败')
-            
+
             return redirect(url_for('admin'))
-        
+
+        @self.app.route('/admin/batch_toggle_user', methods=['POST'])
+        @login_required
+        def batch_toggle_user():
+            """批量封禁/解封用户"""
+            user_ids = request.form.getlist('user_ids')
+            action = request.form.get('action')
+
+            if not user_ids or not action:
+                flash('参数错误')
+                return redirect(url_for('admin'))
+
+            success_count = 0
+            fail_count = 0
+
+            for user_id in user_ids:
+                if action == 'ban':
+                    if self.security_client.disable_user(user_id):
+                        success_count += 1
+                    else:
+                        fail_count += 1
+                elif action == 'unban':
+                    if self.security_client.enable_user(user_id):
+                        success_count += 1
+                    else:
+                        fail_count += 1
+
+            action_text = "封禁" if action == "ban" else "解封"
+            if fail_count == 0:
+                flash(f'成功{action_text} {success_count} 个用户')
+            else:
+                flash(f'{action_text}完成：成功 {success_count} 个，失败 {fail_count} 个')
+
+            return redirect(url_for('admin'))
+
         @self.app.route('/admin/config')
         @login_required
         def config():
             """配置编辑页面"""
             # 加载当前配置
             config = load_config()
-            return render_template('config_form.html', config=config)
+            return render_template('config.html', config=config)
         
         @self.app.route('/admin/config/save', methods=['POST'])
         @login_required
@@ -345,6 +544,48 @@ class WebServer:
                     'id': user_id,
                     'name': user.get('Name'),
                     'is_disabled': is_disabled
+                })
+
+            return users_with_status
+        except Exception as e:
+            print(f"获取用户列表失败: {e}")
+            return []
+
+    def _get_all_users_with_expiry(self):
+        """获取所有用户列表（包含到期时间和永不过期信息）"""
+        try:
+            from datetime import datetime
+
+            # 从Emby获取所有用户
+            users = self.emby_client.get_users()
+
+            users_with_status = []
+            for user in users:
+                user_id = user.get('Id')
+                is_disabled = user.get('Policy', {}).get('IsDisabled', False)
+
+                # 获取到期时间和永不过期状态
+                expiry_info = self.db_manager.get_user_expiry(user_id)
+                expiry_date = expiry_info.get('expiry_date') if expiry_info else None
+                never_expire = expiry_info.get('never_expire', False) if expiry_info else False
+
+                # 检查是否已到期（排除永不过期的用户）
+                is_expired = False
+                if expiry_date and not never_expire:
+                    try:
+                        expiry = datetime.strptime(expiry_date, '%Y-%m-%d')
+                        if expiry.date() < datetime.now().date():
+                            is_expired = True
+                    except:
+                        pass
+
+                users_with_status.append({
+                    'id': user_id,
+                    'name': user.get('Name'),
+                    'is_disabled': is_disabled,
+                    'expiry_date': expiry_date,
+                    'is_expired': is_expired,
+                    'never_expire': never_expire
                 })
 
             return users_with_status

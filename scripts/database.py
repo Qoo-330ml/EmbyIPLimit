@@ -58,6 +58,26 @@ class DatabaseManager:
             except sqlite3.OperationalError:
                 pass
             
+            # 用户到期时间表（支持永不过期）
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS user_expiry (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT NOT NULL UNIQUE,
+                    expiry_date DATE,
+                    never_expire INTEGER DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+
+            # 迁移：检查并添加 never_expire 列（兼容旧数据库）
+            try:
+                conn.execute('SELECT never_expire FROM user_expiry LIMIT 1')
+            except sqlite3.OperationalError:
+                # 列不存在，需要添加
+                conn.execute('ALTER TABLE user_expiry ADD COLUMN never_expire INTEGER DEFAULT 0')
+                conn.commit()
+            
             conn.commit()
 
     def record_session_start(self, session_data):
@@ -161,4 +181,68 @@ class DatabaseManager:
                 log_data['active_sessions'],
                 log_data['action']
             ))
+            conn.commit()
+
+    def set_user_expiry(self, user_id, expiry_date, never_expire=False):
+        """设置用户到期时间，支持永不过期"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('''
+                INSERT INTO user_expiry (user_id, expiry_date, never_expire, updated_at)
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id) DO UPDATE SET
+                expiry_date = excluded.expiry_date,
+                never_expire = excluded.never_expire,
+                updated_at = CURRENT_TIMESTAMP
+            ''', (user_id, expiry_date, 1 if never_expire else 0))
+            conn.commit()
+
+    def set_user_never_expire(self, user_id, never_expire=True):
+        """设置用户永不过期状态"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('''
+                INSERT INTO user_expiry (user_id, never_expire, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id) DO UPDATE SET
+                never_expire = excluded.never_expire,
+                updated_at = CURRENT_TIMESTAMP
+            ''', (user_id, 1 if never_expire else 0))
+            conn.commit()
+
+    def get_user_expiry(self, user_id):
+        """获取用户到期时间"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute('''
+                SELECT expiry_date, never_expire FROM user_expiry WHERE user_id = ?
+            ''', (user_id,))
+            result = cursor.fetchone()
+            if result:
+                return {'expiry_date': result[0], 'never_expire': bool(result[1])}
+            return None
+
+    def is_user_never_expire(self, user_id):
+        """检查用户是否永不过期"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute('''
+                SELECT never_expire FROM user_expiry WHERE user_id = ?
+            ''', (user_id,))
+            result = cursor.fetchone()
+            return bool(result[0]) if result else False
+
+    def get_all_expired_users(self):
+        """获取所有已到期但未禁用的用户（排除永不过期的）"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute('''
+                SELECT user_id FROM user_expiry 
+                WHERE expiry_date IS NOT NULL 
+                AND expiry_date < DATE('now')
+                AND (never_expire IS NULL OR never_expire = 0)
+            ''')
+            return [row[0] for row in cursor.fetchall()]
+
+    def clear_user_expiry(self, user_id):
+        """清除用户到期时间"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('''
+                DELETE FROM user_expiry WHERE user_id = ?
+            ''', (user_id,))
             conn.commit()

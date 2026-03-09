@@ -397,12 +397,84 @@ class EmbyMonitor:
         except Exception as e:
             print(f"❌ 安全日志记录失败: {str(e)}")
 
+    def _check_expired_users(self):
+        """检查并封禁到期用户"""
+        try:
+            # 获取所有已到期但未禁用的用户
+            expired_users = self.db.get_all_expired_users()
+
+            for user_id in expired_users:
+                try:
+                    # 获取用户信息
+                    user_info = self.emby.get_user_info(user_id)
+                    if not user_info:
+                        continue
+
+                    username = user_info.get('Name', '未知用户').strip()
+
+                    # 检查是否已在白名单
+                    if username.lower() in self.whitelist:
+                        print(f"⚪ 白名单用户 [{username}] 到期但受保护，跳过禁用")
+                        continue
+
+                    # 检查用户是否已被禁用
+                    is_disabled = user_info.get('Policy', {}).get('IsDisabled', False)
+                    if is_disabled:
+                        continue
+
+                    # 封禁用户
+                    if self.security.disable_user(user_id, username):
+                        print(f"🔒 用户 [{username}] 账号已到期，自动封禁")
+
+                        # 记录安全日志
+                        log_data = {
+                            'timestamp': datetime.now(),
+                            'user_id': user_id,
+                            'username': username,
+                            'trigger_ip': 'system',
+                            'active_sessions': 0,
+                            'action': 'DISABLE'
+                        }
+                        self.db.log_security_event(log_data)
+
+                        # 发送Webhook通知
+                        self._send_webhook_notification({
+                            'username': username,
+                            'user_id': user_id,
+                            'ip_address': 'system',
+                            'ip_type': 'N/A',
+                            'location': '系统自动',
+                            'session_count': 0,
+                            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                            'reason': '账号已到期',
+                            'device': 'N/A',
+                            'client': 'N/A'
+                        })
+
+                except Exception as e:
+                    print(f"❌ 处理到期用户 {user_id} 失败: {str(e)}")
+
+        except Exception as e:
+            print(f"❌ 检查到期用户失败: {str(e)}")
+
     def run(self):
         """启动监控服务"""
         print(f"🔍 监控服务启动 | 数据库: {self.config['database']['name']}")
+
+        # 到期用户检查计数器
+        expiry_check_counter = 0
+        expiry_check_interval = 60  # 每60个主循环周期检查一次到期用户
+
         try:
             while True:
                 self.process_sessions()
+
+                # 定期检查到期用户
+                expiry_check_counter += 1
+                if expiry_check_counter >= expiry_check_interval:
+                    self._check_expired_users()
+                    expiry_check_counter = 0
+
                 time.sleep(self.config['monitor']['check_interval'])
         except KeyboardInterrupt:
             print("\n🛑 监控服务已安全停止")

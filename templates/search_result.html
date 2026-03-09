@@ -138,8 +138,7 @@
             <h3>👤 用户信息</h3>
             <p>👤 用户名: {{ username }}</p>
             <p>🆔 用户ID: {{ user_id }}</p>
-            <p>🏷️ 显示名称: {{ user_info.get('DisplayName', '未知') }}</p>
-            <p>📊 禁用状态: {{ '🚫 已禁用' if user_info.get('Policy', {}).get('IsDisabled', False) else '✅ 正常' }}</p>
+            <p>📊 用户状态: {{ '🚫 已禁用' if user_info.get('Policy', {}).get('IsDisabled', False) else '✅ 正常' }}</p>
         </div>
         
         <!-- 正在播放 -->
@@ -190,8 +189,8 @@
                 <thead>
                     <tr>
                         <th>🌐 IP地址</th>
-                        <th>� 位置</th>
-                        <th>� 设备</th>
+                        <th>📍 位置</th>
+                        <th>📱 设备</th>
                         <th>💻 客户端</th>
                         <th>🎬 播放内容</th>
                         <th>▶️ 开始时间</th>

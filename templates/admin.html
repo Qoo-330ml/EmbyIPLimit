@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f4f4f4;
@@ -96,6 +96,10 @@
             background-color: #c8e6c9;
             color: #2e7d32;
         }
+        .status.expired {
+            background-color: #fff3cd;
+            color: #856404;
+        }
         .btn {
             padding: 6px 12px;
             border: none;
@@ -118,6 +122,50 @@
         .unban-btn:hover {
             background-color: #388e3c;
         }
+        /* 设置按钮 */
+        .settings-btn {
+            background-color: #6c757d;
+            color: white;
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 8px;
+        }
+        .settings-btn:hover {
+            background-color: #5a6268;
+        }
+        /* 用户名链接样式 */
+        td a {
+            color: #2196F3;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        td a:hover {
+            text-decoration: underline;
+        }
+        /* 到期时间显示 */
+        .expiry-display {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .expiry-date {
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .expiry-date.not-set {
+            color: #999;
+            font-style: italic;
+        }
+        .expiry-date.set {
+            color: #333;
+        }
+        .expiry-date.expired {
+            color: #856404;
+            font-weight: bold;
+        }
         .flash {
             background-color: #c8e6c9;
             color: #2e7d32;
@@ -126,6 +174,11 @@
             border-radius: 4px;
             border-left: 4px solid #2e7d32;
         }
+        .flash.error {
+            background-color: #ffcdd2;
+            color: #c62828;
+            border-left-color: #c62828;
+        }
         .empty {
             text-align: center;
             padding: 30px;
@@ -133,6 +186,402 @@
         }
         form {
             display: inline;
+        }
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            color: #666;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .close-btn:hover {
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-size: 14px;
+        }
+        .form-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        .btn-primary {
+            background-color: #2196F3;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-primary:hover {
+            background-color: #0b7dda;
+        }
+        .btn-danger {
+            background-color: #f44336;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-danger:hover {
+            background-color: #d32f2f;
+        }
+        .quick-add-btn {
+            background-color: #17a2b8;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-right: 8px;
+        }
+        .quick-add-btn:hover {
+            background-color: #138496;
+        }
+        .quick-add-buttons {
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+        /* 多选按钮 */
+        .multi-select-btn {
+            background-color: #6c757d;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 10px;
+            vertical-align: middle;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .multi-select-btn:hover {
+            background-color: #5a6268;
+        }
+        .multi-select-btn.active {
+            background-color: #28a745;
+        }
+        /* 用户组按钮 */
+        .user-group-btn {
+            background-color: #17a2b8;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 10px;
+            vertical-align: middle;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .user-group-btn:hover {
+            background-color: #138496;
+        }
+        /* 批量操作工具栏 */
+        .batch-toolbar {
+            background-color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .batch-btn {
+            background-color: #17a2b8;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .batch-btn:hover {
+            background-color: #138496;
+        }
+        .batch-btn.batch-ban {
+            background-color: #dc3545;
+        }
+        .batch-btn.batch-ban:hover {
+            background-color: #c82333;
+        }
+        .batch-btn.batch-unban {
+            background-color: #28a745;
+        }
+        .batch-btn.batch-unban:hover {
+            background-color: #218838;
+        }
+        .batch-btn.batch-clear {
+            background-color: #6c757d;
+        }
+        .batch-btn.batch-clear:hover {
+            background-color: #5a6268;
+        }
+        .batch-days-input {
+            width: 50px;
+            padding: 5px 4px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            text-align: center;
+        }
+        /* 用户组模态框 */
+        .user-group-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .user-group-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            background-color: #f8f9fa;
+        }
+        .user-group-item:hover {
+            background-color: #e9ecef;
+        }
+        .user-group-name {
+            font-weight: 500;
+            color: #333;
+        }
+        .user-group-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .user-group-members {
+            font-size: 12px;
+            color: #666;
+        }
+        .user-group-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .group-action-btn {
+            padding: 4px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .group-manage-btn {
+            background-color: #17a2b8;
+            color: white;
+        }
+        .group-manage-btn:hover {
+            background-color: #138496;
+        }
+        .group-delete-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        .group-delete-btn:hover {
+            background-color: #c82333;
+        }
+        .add-group-form {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .add-group-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .add-group-btn {
+            background-color: #28a745;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .add-group-btn:hover {
+            background-color: #218838;
+        }
+        /* 永不过期样式 */
+        .expiry-date.never-expire {
+            color: #28a745;
+            font-weight: 500;
+        }
+        .batch-btn.never-expire {
+            background-color: #28a745;
+        }
+        .batch-btn.never-expire:hover {
+            background-color: #218838;
+        }
+        /* 用户组管理模态框 */
+        .group-manage-modal .modal-content {
+            max-width: 600px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            margin: 5% auto;
+        }
+        .group-manage-modal .modal-body {
+            overflow-y: auto;
+            max-height: calc(80vh - 140px);
+            padding-right: 10px;
+        }
+        .group-manage-modal .modal-footer {
+            margin-top: auto;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .group-members-section {
+            margin-bottom: 20px;
+        }
+        .group-members-section h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .member-list {
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            margin-bottom: 10px;
+        }
+        .member-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .member-item:last-child {
+            border-bottom: none;
+        }
+        .remove-member-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 8px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        .remove-member-btn:hover {
+            background-color: #c82333;
+        }
+        .add-member-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .add-member-select {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .group-expiry-section {
+            border-top: 1px solid #e0e0e0;
+            padding-top: 15px;
+            margin-top: 15px;
+        }
+        .group-expiry-section h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .group-batch-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+        /* 复选框样式 */
+        .user-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        th .user-checkbox {
+            cursor: pointer;
+        }
+        .checkbox-cell {
+            text-align: center;
+            width: 40px;
         }
         /* 移动端适配 */
         @media (max-width: 768px) {
@@ -173,31 +622,50 @@
 </head>
 <body>
     <h1>🎛️ 管理员控制台</h1>
-    
+
     <div class="admin-header">
-        <h2>👥 用户管理</h2>
+        <h2>👥 用户管理
+            <button type="button" id="userGroupBtn" class="user-group-btn" onclick="openUserGroupModal()">👥 用户组</button>
+            <button type="button" id="multiSelectBtn" class="multi-select-btn" onclick="toggleMultiSelect()">☑️ 多选</button>
+        </h2>
         <div>
             <a href="/" class="search-btn">🔍 返回查询</a>
             <a href="/admin/config" class="config-btn">⚙️ 配置管理</a>
             <a href="/logout" class="logout-btn">🚪 退出登录</a>
         </div>
     </div>
-    
-    {% with messages = get_flashed_messages() %}
+
+    <!-- 批量操作工具栏 -->
+    <div id="batchToolbar" class="batch-toolbar" style="display: none;">
+        <span style="color: #666; font-size: 14px; margin-right: 10px;">批量操作:</span>
+        <button type="button" class="batch-btn" onclick="batchAddDays(7)">+7天</button>
+        <button type="button" class="batch-btn" onclick="batchAddDays(30)">+30天</button>
+        <button type="button" class="batch-btn" onclick="batchAddDays(365)">+365天</button>
+        <input type="number" id="batchCustomDays" class="batch-days-input" placeholder="天" min="1">
+        <button type="button" class="batch-btn" onclick="batchAddCustomDays()">+</button>
+        <button type="button" class="batch-btn never-expire" onclick="batchSetNeverExpire()">♾️ 永不过期</button>
+        <button type="button" class="batch-btn batch-clear" onclick="batchClearExpiry()">🗑️ 清除到期</button>
+        <button type="button" class="batch-btn batch-ban" onclick="batchToggleUser('ban')">🔒 禁用</button>
+        <button type="button" class="batch-btn batch-unban" onclick="batchToggleUser('unban')">🔓 启用</button>
+        <span id="selectedCount" style="color: #666; font-size: 14px; margin-left: 15px;">已选择 0 个用户</span>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            {% for message in messages %}
-                <div class="flash">{{ message }}</div>
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
             {% endfor %}
         {% endif %}
     {% endwith %}
-    
+
     <div class="user-table">
         {% if users %}
         <table>
             <thead>
                 <tr>
-                    <th>🆔 用户ID</th>
+                    <th class="checkbox-cell" id="selectAllHeader" style="display: none;"><input type="checkbox" class="user-checkbox" id="selectAll" onclick="toggleSelectAll()"></th>
                     <th>👤 用户名</th>
+                    <th>📅 到期时间</th>
                     <th>📊 状态</th>
                     <th>⚡ 操作</th>
                 </tr>
@@ -205,22 +673,45 @@
             <tbody>
                 {% for user in users %}
                 <tr>
-                    <td>{{ user.id }}</td>
-                    <td>{{ user.name }}</td>
+                    <td class="checkbox-cell user-checkbox-cell" style="display: none;"><input type="checkbox" class="user-checkbox" name="user_ids" value="{{ user.id }}" data-username="{{ user.name }}" onclick="updateSelectedCount()"></td>
+                    <td><a href="/search?username={{ user.name }}" style="color: #2196F3; text-decoration: none; font-weight: 500;">{{ user.name }}</a></td>
                     <td>
-                        <span class="status {{ 'disabled' if user.is_disabled else 'enabled' }}">
-                            {{ '🚫 已禁用' if user.is_disabled else '✅ 正常' }}
+                        <div class="expiry-display">
+                            <span class="expiry-date {{ 'expired' if user.is_expired else ('never-expire' if user.never_expire else ('set' if user.expiry_date else 'not-set')) }}">
+                                {% if user.never_expire %}
+                                    ♾️ 永不过期
+                                {% else %}
+                                    {{ user.expiry_date if user.expiry_date else '未设置' }}
+                                    {% if user.is_expired %}
+                                        (已到期)
+                                    {% endif %}
+                                {% endif %}
+                            </span>
+                            <button class="settings-btn" onclick="openExpiryModal('{{ user.id }}', '{{ user.name }}', '{{ user.expiry_date or '' }}', {{ 'true' if user.never_expire else 'false' }})">
+                                ⚙️
+                            </button>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="status {{ 'disabled' if user.is_disabled else ('expired' if user.is_expired else 'enabled') }}">
+                            {% if user.is_disabled %}
+                                🚫 禁用
+                            {% elif user.is_expired %}
+                                ⏰ 已到期
+                            {% else %}
+                                ✅ 正常
+                            {% endif %}
                         </span>
                     </td>
                     <td>
                         {% if user.is_disabled %}
-                        <form action="/admin/toggle_user" method="post">
+                        <form action="/admin/toggle_user" method="post" style="display: inline;">
                             <input type="hidden" name="user_id" value="{{ user.id }}">
                             <input type="hidden" name="action" value="unban">
                             <button type="submit" class="btn unban-btn">🔓 解封</button>
                         </form>
                         {% else %}
-                        <form action="/admin/toggle_user" method="post">
+                        <form action="/admin/toggle_user" method="post" style="display: inline;">
                             <input type="hidden" name="user_id" value="{{ user.id }}">
                             <input type="hidden" name="action" value="ban">
                             <button type="submit" class="btn ban-btn">🔒 封禁</button>
@@ -235,5 +726,863 @@
         <div class="empty">📭 没有找到用户</div>
         {% endif %}
     </div>
+
+    <!-- 到期时间设置模态框 -->
+    <div id="expiryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">📅 设置到期时间</h3>
+                <button class="close-btn" onclick="closeExpiryModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: #666; margin-bottom: 15px;">
+                    用户: <span id="modalUsername" style="color: #333; font-weight: bold;"></span>
+                </p>
+                <form id="expiryForm" action="/admin/set_expiry" method="post">
+                    <input type="hidden" id="modalUserId" name="user_id">
+                    <div class="form-group">
+                        <label class="form-label">到期日期</label>
+                        <input type="date" id="expiryDate" name="expiry_date" class="form-input">
+                        <div style="margin-top: 10px;">
+                            <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px; color: #333;">
+                                <input type="checkbox" id="neverExpireCheckbox" style="width: 18px; height: 18px; margin-right: 8px; cursor: pointer;" onchange="toggleNeverExpire()">
+                                <span>♾️ 永不过期</span>
+                            </label>
+                        </div>
+                        <div class="quick-add-buttons" id="quickAddButtons">
+                            <span style="color: #666; font-size: 13px; margin-right: 8px;">快速添加:</span>
+                            <button type="button" class="quick-add-btn" onclick="addDays(7)">+7天</button>
+                            <button type="button" class="quick-add-btn" onclick="addDays(30)">+30天</button>
+                            <button type="button" class="quick-add-btn" onclick="addDays(365)">+365天</button>
+                            <input type="number" id="customDays" placeholder="天" min="1" style="width: 40px; padding: 4px 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; margin-left: 8px; text-align: center;">
+                            <button type="button" class="quick-add-btn" onclick="addCustomDays()">+</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-danger" onclick="clearExpiry()">🗑️ 清除</button>
+                <button type="button" class="btn-secondary" onclick="closeExpiryModal()">❌ 取消</button>
+                <button type="button" class="btn-primary" onclick="saveExpiry()">💾 保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 用户组管理模态框 -->
+    <div id="userGroupModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title">👥 用户组管理</h3>
+                <button class="close-btn" onclick="closeUserGroupModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="user-group-list" id="userGroupList">
+                    <!-- 用户组列表将通过JS动态加载 -->
+                </div>
+                <div class="add-group-form">
+                    <input type="text" id="newGroupName" class="add-group-input" placeholder="输入新用户组名称">
+                    <button type="button" class="add-group-btn" onclick="addGroup()">➕ 添加</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeUserGroupModal()">❌ 关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 用户组详细管理模态框 -->
+    <div id="groupManageModal" class="modal group-manage-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">👥 管理用户组: <span id="manageGroupName"></span></h3>
+                <button class="close-btn" onclick="closeGroupManageModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="manageGroupId">
+
+                <!-- 成员管理 -->
+                <div class="group-members-section">
+                    <h4>👤 组成员</h4>
+                    <div class="member-list" id="memberList">
+                        <!-- 成员列表将通过JS动态加载 -->
+                    </div>
+                    <div class="add-member-section">
+                        <select id="addMemberSelect" class="add-member-select">
+                            <option value="">选择要添加的用户</option>
+                        </select>
+                        <button type="button" class="btn-primary" onclick="addMemberToGroup()">➕ 添加</button>
+                    </div>
+                </div>
+
+                <!-- 组到期时间设置 -->
+                <div class="group-expiry-section">
+                    <h4>📅 组到期时间设置</h4>
+                    <p style="color: #666; font-size: 13px; margin-bottom: 10px;">设置后将应用到组内所有成员</p>
+                    <div class="form-group">
+                        <label class="form-label">到期日期</label>
+                        <input type="date" id="groupExpiryDate" class="form-input">
+                        <div style="margin-top: 10px;">
+                            <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px; color: #333;">
+                                <input type="checkbox" id="groupNeverExpireCheckbox" style="width: 18px; height: 18px; margin-right: 8px; cursor: pointer;" onchange="toggleGroupNeverExpire()">
+                                <span>♾️ 永不过期</span>
+                            </label>
+                        </div>
+                        <div class="quick-add-buttons" id="groupQuickAddButtons">
+                            <span style="color: #666; font-size: 13px; margin-right: 8px;">快速添加:</span>
+                            <button type="button" class="quick-add-btn" onclick="addGroupDays(7)">+7天</button>
+                            <button type="button" class="quick-add-btn" onclick="addGroupDays(30)">+30天</button>
+                            <button type="button" class="quick-add-btn" onclick="addGroupDays(365)">+365天</button>
+                            <input type="number" id="groupCustomDays" placeholder="天" min="1" style="width: 40px; padding: 4px 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; margin-left: 8px; text-align: center;">
+                            <button type="button" class="quick-add-btn" onclick="addGroupCustomDays()">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 批量操作 -->
+                <div class="group-batch-actions">
+                    <h4 style="width: 100%; margin-bottom: 10px;">⚡ 批量操作</h4>
+                    <button type="button" class="batch-btn never-expire" onclick="batchGroupNeverExpire()">♾️ 永不过期</button>
+                    <button type="button" class="batch-btn batch-ban" onclick="batchGroupAction('ban')">🔒 禁用</button>
+                    <button type="button" class="batch-btn batch-unban" onclick="batchGroupAction('unban')">🔓 启用</button>
+                    <button type="button" class="batch-btn batch-clear" onclick="batchGroupClearExpiry()">🗑️ 清除到期时间</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-danger" onclick="clearGroupExpiry()">🗑️ 清除</button>
+                <button type="button" class="btn-secondary" onclick="closeGroupManageModal()">❌ 关闭</button>
+                <button type="button" class="btn-primary" onclick="saveGroupExpiry()">💾 保存到期时间</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openExpiryModal(userId, username, currentExpiry, neverExpire = false) {
+            document.getElementById('modalUserId').value = userId;
+            document.getElementById('modalUsername').textContent = username;
+            document.getElementById('expiryDate').value = currentExpiry || '';
+            document.getElementById('neverExpireCheckbox').checked = neverExpire;
+            toggleNeverExpire();
+            document.getElementById('expiryModal').style.display = 'block';
+        }
+
+        function closeExpiryModal() {
+            document.getElementById('expiryModal').style.display = 'none';
+        }
+
+        function toggleNeverExpire() {
+            const neverExpire = document.getElementById('neverExpireCheckbox').checked;
+            const expiryDateInput = document.getElementById('expiryDate');
+            const quickAddButtons = document.getElementById('quickAddButtons');
+
+            if (neverExpire) {
+                expiryDateInput.disabled = true;
+                expiryDateInput.style.backgroundColor = '#e9ecef';
+                quickAddButtons.style.opacity = '0.5';
+                quickAddButtons.style.pointerEvents = 'none';
+            } else {
+                expiryDateInput.disabled = false;
+                expiryDateInput.style.backgroundColor = '';
+                quickAddButtons.style.opacity = '1';
+                quickAddButtons.style.pointerEvents = 'auto';
+            }
+        }
+
+        function saveExpiry() {
+            const neverExpire = document.getElementById('neverExpireCheckbox').checked;
+
+            if (neverExpire) {
+                // 永不过期，使用特殊表单提交
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/admin/set_never_expire';
+
+                const userIdInput = document.createElement('input');
+                userIdInput.type = 'hidden';
+                userIdInput.name = 'user_id';
+                userIdInput.value = document.getElementById('modalUserId').value;
+                form.appendChild(userIdInput);
+
+                const neverExpireInput = document.createElement('input');
+                neverExpireInput.type = 'hidden';
+                neverExpireInput.name = 'never_expire';
+                neverExpireInput.value = '1';
+                form.appendChild(neverExpireInput);
+
+                document.body.appendChild(form);
+                form.submit();
+            } else {
+                document.getElementById('expiryForm').submit();
+            }
+        }
+
+        function clearExpiry() {
+            const neverExpire = document.getElementById('neverExpireCheckbox').checked;
+
+            if (neverExpire) {
+                // 清除永不过期状态
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/admin/set_never_expire';
+
+                const userIdInput = document.createElement('input');
+                userIdInput.type = 'hidden';
+                userIdInput.name = 'user_id';
+                userIdInput.value = document.getElementById('modalUserId').value;
+                form.appendChild(userIdInput);
+
+                const neverExpireInput = document.createElement('input');
+                neverExpireInput.type = 'hidden';
+                neverExpireInput.name = 'never_expire';
+                neverExpireInput.value = '0';
+                form.appendChild(neverExpireInput);
+
+                document.body.appendChild(form);
+                form.submit();
+            } else {
+                document.getElementById('expiryDate').value = '';
+                document.getElementById('expiryForm').submit();
+            }
+        }
+
+        function addDays(days) {
+            const dateInput = document.getElementById('expiryDate');
+            let currentDate;
+
+            // 如果已有日期，从该日期开始计算；否则从今天开始
+            if (dateInput.value) {
+                currentDate = new Date(dateInput.value);
+            } else {
+                currentDate = new Date();
+            }
+
+            // 添加天数
+            currentDate.setDate(currentDate.getDate() + days);
+
+            // 格式化为 YYYY-MM-DD
+            const year = currentDate.getFullYear();
+            const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const day = String(currentDate.getDate()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}`;
+        }
+
+        function addCustomDays() {
+            const customDaysInput = document.getElementById('customDays');
+            const days = parseInt(customDaysInput.value);
+
+            if (isNaN(days) || days < 1) {
+                alert('请输入有效的天数（至少1天）');
+                return;
+            }
+
+            addDays(days);
+            customDaysInput.value = ''; // 清空输入框
+        }
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('expiryModal');
+            if (event.target == modal) {
+                closeExpiryModal();
+            }
+        }
+
+        // 批量选择相关功能
+        let multiSelectMode = false;
+
+        function toggleMultiSelect() {
+            multiSelectMode = !multiSelectMode;
+            const btn = document.getElementById('multiSelectBtn');
+            const toolbar = document.getElementById('batchToolbar');
+            const checkboxes = document.querySelectorAll('.user-checkbox-cell');
+            const selectAllHeader = document.getElementById('selectAllHeader');
+
+            if (multiSelectMode) {
+                btn.classList.add('active');
+                btn.textContent = '✓ 完成';
+                toolbar.style.display = 'flex';
+                checkboxes.forEach(cb => cb.style.display = 'table-cell');
+                selectAllHeader.style.display = 'table-cell';
+            } else {
+                btn.classList.remove('active');
+                btn.textContent = '☑️ 多选';
+                toolbar.style.display = 'none';
+                checkboxes.forEach(cb => cb.style.display = 'none');
+                selectAllHeader.style.display = 'none';
+                // 取消所有选择
+                document.querySelectorAll('input[name="user_ids"]').forEach(cb => cb.checked = false);
+                document.getElementById('selectAll').checked = false;
+                updateSelectedCount();
+            }
+        }
+
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('input[name="user_ids"]');
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            const selected = document.querySelectorAll('input[name="user_ids"]:checked');
+            document.getElementById('selectedCount').textContent = `已选择 ${selected.length} 个用户`;
+
+            // 更新全选框状态
+            const allCheckboxes = document.querySelectorAll('input[name="user_ids"]');
+            const selectAll = document.getElementById('selectAll');
+            if (selected.length === 0) {
+                selectAll.checked = false;
+            } else if (selected.length === allCheckboxes.length) {
+                selectAll.checked = true;
+            } else {
+                selectAll.checked = false;
+            }
+        }
+
+        function getSelectedUserIds() {
+            const selected = document.querySelectorAll('input[name="user_ids"]:checked');
+            return Array.from(selected).map(cb => cb.value);
+        }
+
+        function batchAddDays(days) {
+            const userIds = getSelectedUserIds();
+            if (userIds.length === 0) {
+                alert('请先选择用户');
+                return;
+            }
+
+            // 创建表单提交
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/admin/batch_set_expiry';
+
+            userIds.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'user_ids';
+                input.value = id;
+                form.appendChild(input);
+            });
+
+            const daysInput = document.createElement('input');
+            daysInput.type = 'hidden';
+            daysInput.name = 'days';
+            daysInput.value = days;
+            form.appendChild(daysInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        function batchToggleUser(action) {
+            const userIds = getSelectedUserIds();
+            if (userIds.length === 0) {
+                alert('请先选择用户');
+                return;
+            }
+
+            const actionText = action === 'ban' ? '禁用' : '启用';
+            if (!confirm(`确定要${actionText}选中的 ${userIds.length} 个用户吗？`)) {
+                return;
+            }
+
+            // 创建表单提交
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/admin/batch_toggle_user';
+
+            userIds.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'user_ids';
+                input.value = id;
+                form.appendChild(input);
+            });
+
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = action;
+            form.appendChild(actionInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        function batchAddCustomDays() {
+            const customDaysInput = document.getElementById('batchCustomDays');
+            const days = parseInt(customDaysInput.value);
+
+            if (isNaN(days) || days < 1) {
+                alert('请输入有效的天数（至少1天）');
+                return;
+            }
+
+            batchAddDays(days);
+            customDaysInput.value = ''; // 清空输入框
+        }
+
+        function batchSetNeverExpire() {
+            const userIds = getSelectedUserIds();
+            if (userIds.length === 0) {
+                alert('请先选择用户');
+                return;
+            }
+
+            if (!confirm(`确定要将选中的 ${userIds.length} 个用户设置为永不过期吗？`)) {
+                return;
+            }
+
+            // 创建表单提交
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/admin/batch_set_never_expire';
+
+            userIds.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'user_ids';
+                input.value = id;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        function batchClearExpiry() {
+            const userIds = getSelectedUserIds();
+            if (userIds.length === 0) {
+                alert('请先选择用户');
+                return;
+            }
+
+            if (!confirm(`确定要清除选中的 ${userIds.length} 个用户的到期时间吗？`)) {
+                return;
+            }
+
+            // 创建表单提交
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/admin/batch_clear_expiry';
+
+            userIds.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'user_ids';
+                input.value = id;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        // 用户组管理功能
+        let userGroups = JSON.parse(localStorage.getItem('userGroups') || '[]');
+        let allUsers = JSON.parse('{{ users | tojson | safe }}');
+
+        function openUserGroupModal() {
+            document.getElementById('userGroupModal').style.display = 'block';
+            renderUserGroupList();
+        }
+
+        function closeUserGroupModal() {
+            document.getElementById('userGroupModal').style.display = 'none';
+        }
+
+        function renderUserGroupList() {
+            const listContainer = document.getElementById('userGroupList');
+            listContainer.innerHTML = '';
+
+            if (userGroups.length === 0) {
+                listContainer.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">暂无用户组，请添加</div>';
+                return;
+            }
+
+            userGroups.forEach(group => {
+                const memberCount = group.members ? group.members.length : 0;
+                const item = document.createElement('div');
+                item.className = 'user-group-item';
+                item.innerHTML = `
+                    <div class="user-group-info">
+                        <span class="user-group-name">${group.name}</span>
+                        <span class="user-group-members">${memberCount} 个成员</span>
+                    </div>
+                    <div class="user-group-actions">
+                        <button type="button" class="group-action-btn group-manage-btn" onclick="openGroupManageModal('${group.id}')">管理</button>
+                        <button type="button" class="group-action-btn group-delete-btn" onclick="deleteGroup('${group.id}')">删除</button>
+                    </div>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+
+        function addGroup() {
+            const input = document.getElementById('newGroupName');
+            const name = input.value.trim();
+
+            if (!name) {
+                alert('请输入用户组名称');
+                return;
+            }
+
+            // 检查是否已存在
+            if (userGroups.some(g => g.name === name)) {
+                alert('该用户组已存在');
+                return;
+            }
+
+            const newGroup = {
+                id: 'group_' + Date.now(),
+                name: name,
+                members: []
+            };
+
+            userGroups.push(newGroup);
+            localStorage.setItem('userGroups', JSON.stringify(userGroups));
+            input.value = '';
+            renderUserGroupList();
+        }
+
+        function deleteGroup(groupId) {
+            if (!confirm('确定要删除该用户组吗？')) {
+                return;
+            }
+
+            userGroups = userGroups.filter(g => g.id !== groupId);
+            localStorage.setItem('userGroups', JSON.stringify(userGroups));
+            renderUserGroupList();
+        }
+
+        // 用户组详细管理功能
+        let currentGroupId = null;
+
+        function openGroupManageModal(groupId) {
+            const group = userGroups.find(g => g.id === groupId);
+            if (!group) return;
+
+            currentGroupId = groupId;
+            document.getElementById('manageGroupId').value = groupId;
+            document.getElementById('manageGroupName').textContent = group.name;
+            document.getElementById('groupManageModal').style.display = 'block';
+
+            renderMemberList();
+            updateAddMemberSelect();
+        }
+
+        function closeGroupManageModal() {
+            document.getElementById('groupManageModal').style.display = 'none';
+            currentGroupId = null;
+        }
+
+        function renderMemberList() {
+            const group = userGroups.find(g => g.id === currentGroupId);
+            const memberList = document.getElementById('memberList');
+            memberList.innerHTML = '';
+
+            if (!group || !group.members || group.members.length === 0) {
+                memberList.innerHTML = '<div style="color: #999; text-align: center;">暂无成员</div>';
+                return;
+            }
+
+            group.members.forEach(userId => {
+                const user = allUsers.find(u => u.id === userId);
+                if (user) {
+                    const item = document.createElement('div');
+                    item.className = 'member-item';
+                    item.innerHTML = `
+                        <span>${user.name}</span>
+                        <button type="button" class="remove-member-btn" onclick="removeMemberFromGroup('${userId}')">移除</button>
+                    `;
+                    memberList.appendChild(item);
+                }
+            });
+        }
+
+        function updateAddMemberSelect() {
+            const group = userGroups.find(g => g.id === currentGroupId);
+            const select = document.getElementById('addMemberSelect');
+            select.innerHTML = '<option value="">选择要添加的用户</option>';
+
+            // 获取未被分配到该组的用户
+            const assignedMembers = group ? (group.members || []) : [];
+            const availableUsers = allUsers.filter(u => !assignedMembers.includes(u.id));
+
+            availableUsers.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = user.name;
+                select.appendChild(option);
+            });
+        }
+
+        function addMemberToGroup() {
+            const select = document.getElementById('addMemberSelect');
+            const userId = select.value;
+
+            if (!userId) {
+                alert('请选择要添加的用户');
+                return;
+            }
+
+            const group = userGroups.find(g => g.id === currentGroupId);
+            if (group) {
+                if (!group.members) group.members = [];
+                group.members.push(userId);
+                localStorage.setItem('userGroups', JSON.stringify(userGroups));
+                renderMemberList();
+                updateAddMemberSelect();
+                renderUserGroupList();
+            }
+        }
+
+        function removeMemberFromGroup(userId) {
+            const group = userGroups.find(g => g.id === currentGroupId);
+            if (group && group.members) {
+                group.members = group.members.filter(id => id !== userId);
+                localStorage.setItem('userGroups', JSON.stringify(userGroups));
+                renderMemberList();
+                updateAddMemberSelect();
+                renderUserGroupList();
+            }
+        }
+
+        // 组到期时间相关功能
+        function addGroupDays(days) {
+            const dateInput = document.getElementById('groupExpiryDate');
+            let currentDate;
+
+            if (dateInput.value) {
+                currentDate = new Date(dateInput.value);
+            } else {
+                currentDate = new Date();
+            }
+
+            currentDate.setDate(currentDate.getDate() + days);
+
+            const year = currentDate.getFullYear();
+            const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const day = String(currentDate.getDate()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}`;
+        }
+
+        function addGroupCustomDays() {
+            const customDaysInput = document.getElementById('groupCustomDays');
+            const days = parseInt(customDaysInput.value);
+
+            if (isNaN(days) || days < 1) {
+                alert('请输入有效的天数（至少1天）');
+                return;
+            }
+
+            addGroupDays(days);
+            customDaysInput.value = '';
+        }
+
+        function toggleGroupNeverExpire() {
+            const neverExpire = document.getElementById('groupNeverExpireCheckbox').checked;
+            const expiryDateInput = document.getElementById('groupExpiryDate');
+            const quickAddButtons = document.getElementById('groupQuickAddButtons');
+
+            if (neverExpire) {
+                expiryDateInput.disabled = true;
+                expiryDateInput.style.backgroundColor = '#e9ecef';
+                quickAddButtons.style.opacity = '0.5';
+                quickAddButtons.style.pointerEvents = 'none';
+            } else {
+                expiryDateInput.disabled = false;
+                expiryDateInput.style.backgroundColor = '';
+                quickAddButtons.style.opacity = '1';
+                quickAddButtons.style.pointerEvents = 'auto';
+            }
+        }
+
+        function saveGroupExpiry() {
+            const neverExpire = document.getElementById('groupNeverExpireCheckbox').checked;
+            const group = userGroups.find(g => g.id === currentGroupId);
+
+            if (!group || !group.members || group.members.length === 0) {
+                alert('该组没有成员');
+                return;
+            }
+
+            if (neverExpire) {
+                // 设置为永不过期
+                batchGroupNeverExpire();
+                return;
+            }
+
+            const expiryDate = document.getElementById('groupExpiryDate').value;
+            if (!expiryDate) {
+                alert('请先选择到期日期');
+                return;
+            }
+
+            // 提交表单设置组内所有成员的到期时间
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/admin/batch_set_expiry';
+
+            group.members.forEach(userId => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'user_ids';
+                input.value = userId;
+                form.appendChild(input);
+            });
+
+            // 计算从今天到目标日期的天数差
+            const targetDate = new Date(expiryDate);
+            const today = new Date();
+            const diffTime = targetDate - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            const daysInput = document.createElement('input');
+            daysInput.type = 'hidden';
+            daysInput.name = 'days';
+            daysInput.value = diffDays > 0 ? diffDays : 0;
+            form.appendChild(daysInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        function clearGroupExpiry() {
+            const neverExpire = document.getElementById('groupNeverExpireCheckbox').checked;
+            const group = userGroups.find(g => g.id === currentGroupId);
+
+            if (!group || !group.members || group.members.length === 0) {
+                alert('该组没有成员');
+                return;
+            }
+
+            if (neverExpire) {
+                // 清除永不过期状态
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/admin/batch_set_never_expire';
+
+                group.members.forEach(userId => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'user_ids';
+                    input.value = userId;
+                    form.appendChild(input);
+                });
+
+                // 添加一个标志表示要取消永不过期
+                const cancelInput = document.createElement('input');
+                cancelInput.type = 'hidden';
+                cancelInput.name = 'cancel';
+                cancelInput.value = '1';
+                form.appendChild(cancelInput);
+
+                document.body.appendChild(form);
+                form.submit();
+                return;
+            }
+
+            if (!confirm(`确定要清除组内 ${group.members.length} 个成员的到期时间吗？`)) {
+                return;
+            }
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/admin/batch_clear_expiry';
+
+            group.members.forEach(userId => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'user_ids';
+                input.value = userId;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        // 组批量操作
+        function batchGroupNeverExpire() {
+            const group = userGroups.find(g => g.id === currentGroupId);
+            if (!group || !group.members || group.members.length === 0) {
+                alert('该组没有成员');
+                return;
+            }
+
+            if (!confirm(`确定要将组内 ${group.members.length} 个成员设置为永不过期吗？`)) {
+                return;
+            }
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/admin/batch_set_never_expire';
+
+            group.members.forEach(userId => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'user_ids';
+                input.value = userId;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        function batchGroupAction(action) {
+            const group = userGroups.find(g => g.id === currentGroupId);
+            if (!group || !group.members || group.members.length === 0) {
+                alert('该组没有成员');
+                return;
+            }
+
+            const actionText = action === 'ban' ? '禁用' : '启用';
+            if (!confirm(`确定要${actionText}组内 ${group.members.length} 个成员吗？`)) {
+                return;
+            }
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/admin/batch_toggle_user';
+
+            group.members.forEach(userId => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'user_ids';
+                input.value = userId;
+                form.appendChild(input);
+            });
+
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = action;
+            form.appendChild(actionInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        function batchGroupClearExpiry() {
+            clearGroupExpiry();
+        }
+
+        // 点击模态框外部关闭用户组模态框
+        window.onclick = function(event) {
+            const modal = document.getElementById('expiryModal');
+            const userGroupModal = document.getElementById('userGroupModal');
+            const groupManageModal = document.getElementById('groupManageModal');
+            if (event.target == modal) {
+                closeExpiryModal();
+            }
+            if (event.target == userGroupModal) {
+                closeUserGroupModal();
+            }
+            if (event.target == groupManageModal) {
+                closeGroupManageModal();
+            }
+        }
+    </script>
 </body>
 </html>
