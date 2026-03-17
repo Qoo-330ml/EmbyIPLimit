@@ -68,6 +68,21 @@ export default function AppShell() {
             {theme === 'dark' ? <Sun className='h-4 w-4' /> : <Moon className='h-4 w-4' />}
           </Button>
         </div>
+        <div className='mx-auto flex max-w-7xl gap-2 px-4 pb-3 md:hidden'>
+          {navItems.map((item) => (
+            <NavLink
+              key={`mobile-${item.to}`}
+              to={item.to}
+              className={({ isActive }) =>
+                `flex-1 rounded-md px-3 py-1.5 text-center text-sm transition-colors ${
+                  isActive ? 'bg-primary text-primary-foreground' : 'bg-accent text-foreground'
+                }`
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </div>
       </header>
 
       <main>

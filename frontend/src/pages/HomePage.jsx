@@ -78,30 +78,52 @@ export default function HomePage() {
           {loading ? (
             <p className='text-sm text-muted-foreground'>加载中...</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>用户</TableHead>
-                  <TableHead>IP</TableHead>
-                  <TableHead>位置</TableHead>
-                  <TableHead>设备</TableHead>
-                  <TableHead>客户端</TableHead>
-                  <TableHead>内容</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sessions.map((s) => (
-                  <TableRow key={s.session_id}>
-                    <TableCell>{s.username}</TableCell>
-                    <TableCell>{s.ip_address}</TableCell>
-                    <TableCell>{s.location}</TableCell>
-                    <TableCell>{s.device}</TableCell>
-                    <TableCell>{s.client}</TableCell>
-                    <TableCell>{s.media}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <>
+              <div className='space-y-2 md:hidden'>
+                {sessions.length ? (
+                  sessions.map((s) => (
+                    <div key={s.session_id} className='rounded-lg border p-3 text-sm'>
+                      <div className='font-medium'>{s.username}</div>
+                      <div className='mt-1 text-muted-foreground'>
+                        <div>内容：{s.media}</div>
+                        <div>设备：{s.device} · {s.client}</div>
+                        <div>IP：{s.ip_address}</div>
+                        <div>位置：{s.location}</div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className='text-sm text-muted-foreground'>暂无正在播放</p>
+                )}
+              </div>
+
+              <div className='hidden md:block'>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>用户</TableHead>
+                      <TableHead>IP</TableHead>
+                      <TableHead>位置</TableHead>
+                      <TableHead>设备</TableHead>
+                      <TableHead>客户端</TableHead>
+                      <TableHead>内容</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sessions.map((s) => (
+                      <TableRow key={s.session_id}>
+                        <TableCell>{s.username}</TableCell>
+                        <TableCell>{s.ip_address}</TableCell>
+                        <TableCell>{s.location}</TableCell>
+                        <TableCell>{s.device}</TableCell>
+                        <TableCell>{s.client}</TableCell>
+                        <TableCell>{s.media}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
