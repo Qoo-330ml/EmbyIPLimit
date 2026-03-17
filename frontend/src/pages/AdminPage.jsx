@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CalendarPlus, Lock, LockOpen, Settings, Users } from 'lucide-react'
+import { CalendarPlus, Lock, LockOpen } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -148,19 +148,10 @@ export default function AdminPage() {
 
   return (
     <div className='mx-auto max-w-7xl space-y-6 p-4 pb-8 md:p-8'>
-      <div className='flex flex-wrap items-center justify-between gap-2'>
-        <h1 className='text-2xl font-bold'>管理后台</h1>
-        <div className='flex gap-2'>
-          <Button variant='outline' onClick={() => navigate('/admin/config')}>
-            <Settings className='mr-2 h-4 w-4' /> 配置
-          </Button>
-          <Button variant='outline' onClick={() => navigate('/admin/groups')}>
-            <Users className='mr-2 h-4 w-4' /> 用户组
-          </Button>
-          <Button variant='destructive' onClick={logout}>
-            退出
-          </Button>
-        </div>
+      <div className='flex flex-wrap items-center justify-end gap-2'>
+        <Button variant='destructive' onClick={logout}>
+          退出
+        </Button>
       </div>
 
       <div className='grid gap-4 md:grid-cols-4'>
