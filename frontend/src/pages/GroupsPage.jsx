@@ -103,7 +103,7 @@ export default function GroupsPage() {
   }
 
   return (
-    <div className='mx-auto max-w-6xl space-y-6 p-4 md:p-8'>
+    <div className='mx-auto max-w-6xl space-y-6 p-4 pb-8 md:p-8'>
       <div className='flex items-center justify-between'>
         <h1 className='text-2xl font-bold'>用户组管理</h1>
         <Button variant='outline' onClick={() => navigate('/admin')}>

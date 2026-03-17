@@ -147,7 +147,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className='mx-auto max-w-7xl space-y-6 p-4 md:p-8'>
+    <div className='mx-auto max-w-7xl space-y-6 p-4 pb-8 md:p-8'>
       <div className='flex flex-wrap items-center justify-between gap-2'>
         <h1 className='text-2xl font-bold'>管理后台</h1>
         <div className='flex gap-2'>
