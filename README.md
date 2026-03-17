@@ -76,7 +76,19 @@ cp scripts/default_config.yaml data/config.yaml
 vim data/config.yaml
 ```
 
-#### 5. 运行服务
+#### 5. 构建前端（React + Vite）
+```bash
+cd frontend
+npm install
+npm run build
+cd ..
+```
+
+#### 6. 运行服务
 ```bash
 python scripts/main.py
 ```
+
+> 说明：
+> - 现在 Web 界面由 `frontend/dist` 托管，Flask 仅提供 `/api/*` 接口 + SPA 静态资源。
+> - 如需前端热更新开发，可在 `frontend` 目录执行 `npm run dev`，默认代理到 `http://127.0.0.1:5000`。
