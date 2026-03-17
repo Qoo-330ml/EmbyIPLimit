@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -16,6 +17,7 @@ export default function GroupsPage() {
   const [days, setDays] = useState('30')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const navigate = useNavigate()
 
   const activeGroup = useMemo(() => groups.find((g) => g.id === activeGroupId), [groups, activeGroupId])
   const activeMemberIds = activeGroup?.members || []
@@ -125,6 +127,17 @@ export default function GroupsPage() {
     <div className='mx-auto max-w-7xl space-y-6 p-4 pb-8 md:p-8'>
       <div className='flex flex-wrap items-center justify-between gap-2'>
         <h1 className='text-2xl font-bold'>用户组管理</h1>
+        <div className='flex flex-wrap items-center gap-2'>
+          <Button variant='outline' onClick={() => navigate('/admin/users')}>
+            用户
+          </Button>
+          <Button variant='outline' onClick={() => navigate('/admin/config')}>
+            配置
+          </Button>
+          <Button variant='outline' onClick={() => navigate('/admin/groups')}>
+            用户组
+          </Button>
+        </div>
       </div>
 
       {error ? <p className='text-sm text-destructive'>{error}</p> : null}
