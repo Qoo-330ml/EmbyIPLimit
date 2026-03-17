@@ -77,25 +77,6 @@ export default function AppShell() {
       </header>
 
       <main>
-        {location.pathname !== '/' && location.pathname.startsWith('/admin') ? (
-          <div className='mx-auto max-w-7xl px-4 pt-4 md:px-8'>
-            <div className='mt-1 flex flex-wrap gap-2'>
-              {adminSubNav.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    `rounded-md border px-3 py-1 text-sm transition-colors ${
-                      isActive ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
-                    }`
-                  }
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-            </div>
-          </div>
-        ) : null}
         <Outlet />
       </main>
     </div>
