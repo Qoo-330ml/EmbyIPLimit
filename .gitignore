@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+
+# Data
+/data/*.db
+/data/*.db-*
+/data/config.yaml
+/data/config.yaml.backup
+
+# Frontend
+/frontend/node_modules/
+/frontend/dist/
+
+# OS
+.DS_Store

@@ -68,13 +68,21 @@ def load_config():
     with open(config_file, 'r', encoding='utf-8') as f:
         user_config = yaml.safe_load(f) or {}
     
+    # 兼容旧配置：emby.check_interval -> monitor.check_interval
+    if user_config.get('emby', {}).get('check_interval') and not user_config.get('monitor', {}).get('check_interval'):
+        user_config.setdefault('monitor', {})['check_interval'] = user_config['emby']['check_interval']
+
     # 深度合并配置
     config = DEFAULT_CONFIG.copy()
     for section in user_config:
-        if section in config:
+        if section in config and isinstance(config[section], dict) and isinstance(user_config[section], dict):
             config[section].update(user_config[section])
         else:
             config[section] = user_config[section]
+    
+    # 清理旧字段，避免双写
+    if 'check_interval' in config.get('emby', {}):
+        config['emby'].pop('check_interval', None)
     
     # 验证必要字段
     required_fields = [
