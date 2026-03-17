@@ -71,26 +71,28 @@ export default function AppShell() {
       </header>
 
       <main>
-        <div className='mx-auto max-w-7xl px-4 pt-4 md:px-8'>
-          <h2 className='text-lg font-semibold'>{title}</h2>
-          {location.pathname.startsWith('/admin') ? (
-            <div className='mt-3 flex flex-wrap gap-2'>
-              {adminSubNav.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    `rounded-md border px-3 py-1 text-sm transition-colors ${
-                      isActive ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
-                    }`
-                  }
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-            </div>
-          ) : null}
-        </div>
+        {location.pathname !== '/' ? (
+          <div className='mx-auto max-w-7xl px-4 pt-4 md:px-8'>
+            <h2 className='text-lg font-semibold'>{title}</h2>
+            {location.pathname.startsWith('/admin') ? (
+              <div className='mt-3 flex flex-wrap gap-2'>
+                {adminSubNav.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) =>
+                      `rounded-md border px-3 py-1 text-sm transition-colors ${
+                        isActive ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
+                      }`
+                    }
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         <Outlet />
       </main>
     </div>
