@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Shield } from 'lucide-react'
+import { Search } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -15,18 +15,29 @@ export default function HomePage() {
   const navigate = useNavigate()
 
   useEffect(() => {
+    let active = true
+    let timer = null
+
     const load = async () => {
+      if (!active) return
       setLoading(true)
       try {
         const data = await apiRequest('/public/active-sessions')
-        setSessions(data.sessions || [])
+        if (active) setSessions(data.sessions || [])
       } catch (e) {
-        setSessions([])
+        if (active) setSessions([])
       } finally {
-        setLoading(false)
+        if (active) setLoading(false)
       }
     }
+
     load()
+    timer = setInterval(load, 8000)
+
+    return () => {
+      active = false
+      if (timer) clearInterval(timer)
+    }
   }, [])
 
   const onSearch = (e) => {
@@ -39,9 +50,6 @@ export default function HomePage() {
     <div className='mx-auto max-w-6xl space-y-6 p-4 pb-8 md:p-8'>
       <div className='flex items-center justify-between'>
         <h1 className='text-2xl font-bold'>Emby 播放记录查询</h1>
-        <Button variant='outline' onClick={() => navigate('/login')}>
-          <Shield className='mr-2 h-4 w-4' /> 管理员登录
-        </Button>
       </div>
 
       <Card>

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -12,10 +11,11 @@ export default function GroupsPage() {
   const [newGroupName, setNewGroupName] = useState('')
   const [activeGroupId, setActiveGroupId] = useState('')
   const [memberId, setMemberId] = useState('')
+  const [selectedMembers, setSelectedMembers] = useState({})
+  const [filterText, setFilterText] = useState('')
   const [days, setDays] = useState('30')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const navigate = useNavigate()
 
   const activeGroup = useMemo(() => groups.find((g) => g.id === activeGroupId), [groups, activeGroupId])
   const activeMemberIds = activeGroup?.members || []
@@ -49,6 +49,7 @@ export default function GroupsPage() {
   const removeGroup = async (groupId) => {
     await apiRequest(`/admin/groups/${groupId}`, { method: 'DELETE' })
     setNotice('用户组已删除')
+    if (activeGroupId === groupId) setActiveGroupId('')
     await loadAll()
   }
 
@@ -60,6 +61,24 @@ export default function GroupsPage() {
     })
     setNotice('成员添加成功')
     setMemberId('')
+    await loadAll()
+  }
+
+  const addSelectedMembers = async () => {
+    if (!activeGroupId) return
+    const ids = Object.entries(selectedMembers)
+      .filter(([, checked]) => checked)
+      .map(([id]) => id)
+    if (!ids.length) return
+
+    for (const id of ids) {
+      await apiRequest(`/admin/groups/${activeGroupId}/members`, {
+        method: 'POST',
+        body: JSON.stringify({ user_id: id }),
+      })
+    }
+    setNotice(`已批量添加 ${ids.length} 个成员`)
+    setSelectedMembers({})
     await loadAll()
   }
 
@@ -106,9 +125,6 @@ export default function GroupsPage() {
     <div className='mx-auto max-w-6xl space-y-6 p-4 pb-8 md:p-8'>
       <div className='flex items-center justify-between'>
         <h1 className='text-2xl font-bold'>用户组管理</h1>
-        <Button variant='outline' onClick={() => navigate('/admin')}>
-          返回后台
-        </Button>
       </div>
 
       {error ? <p className='text-sm text-destructive'>{error}</p> : null}
@@ -137,15 +153,28 @@ export default function GroupsPage() {
             {groups.map((group) => (
               <div
                 key={group.id}
-                className={`flex items-center justify-between rounded border p-3 ${
+                role='button'
+                tabIndex={0}
+                onClick={() => setActiveGroupId(group.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') setActiveGroupId(group.id)
+                }}
+                className={`flex items-center justify-between rounded border p-3 transition-colors hover:bg-accent/40 ${
                   activeGroupId === group.id ? 'border-primary' : ''
                 }`}
               >
-                <button type='button' onClick={() => setActiveGroupId(group.id)} className='text-left'>
+                <div className='text-left'>
                   <div className='font-medium'>{group.name}</div>
                   <div className='text-xs text-muted-foreground'>{group.members?.length || 0} 个成员</div>
-                </button>
-                <Button size='sm' variant='destructive' onClick={() => removeGroup(group.id)}>
+                </div>
+                <Button
+                  size='sm'
+                  variant='destructive'
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    removeGroup(group.id)
+                  }}
+                >
                   删除
                 </Button>
               </div>
@@ -162,22 +191,58 @@ export default function GroupsPage() {
               <p className='text-sm text-muted-foreground'>请选择一个用户组</p>
             ) : (
               <>
-                <div className='flex gap-2'>
-                  <select
-                    className='h-10 w-full rounded-md border border-input bg-background px-3 text-sm'
-                    value={memberId}
-                    onChange={(e) => setMemberId(e.target.value)}
-                  >
-                    <option value=''>选择要添加的用户</option>
+                <div className='space-y-2 rounded border p-3'>
+                  <div className='flex gap-2'>
+                    <select
+                      className='h-10 w-full rounded-md border border-input bg-background px-3 text-sm'
+                      value={memberId}
+                      onChange={(e) => setMemberId(e.target.value)}
+                    >
+                      <option value=''>选择要添加的用户</option>
+                      {users
+                        .filter((u) => !(activeGroup.members || []).includes(u.id))
+                        .map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name}
+                          </option>
+                        ))}
+                    </select>
+                    <Button onClick={addMember}>添加</Button>
+                  </div>
+
+                  <div className='flex items-center gap-2'>
+                    <Input
+                      placeholder='批量筛选用户'
+                      value={filterText}
+                      onChange={(e) => setFilterText(e.target.value)}
+                    />
+                    <Button variant='secondary' onClick={addSelectedMembers}>
+                      批量添加
+                    </Button>
+                  </div>
+
+                  <div className='max-h-48 space-y-2 overflow-auto rounded border p-2'>
                     {users
                       .filter((u) => !(activeGroup.members || []).includes(u.id))
+                      .filter((u) => u.name.toLowerCase().includes(filterText.toLowerCase()))
                       .map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.name}
-                        </option>
+                        <label key={u.id} className='flex items-center gap-2 text-sm'>
+                          <input
+                            type='checkbox'
+                            checked={Boolean(selectedMembers[u.id])}
+                            onChange={(e) =>
+                              setSelectedMembers((prev) => ({ ...prev, [u.id]: e.target.checked }))
+                            }
+                          />
+                          <span>{u.name}</span>
+                        </label>
                       ))}
-                  </select>
-                  <Button onClick={addMember}>添加</Button>
+                    {!users
+                      .filter((u) => !(activeGroup.members || []).includes(u.id))
+                      .filter((u) => u.name.toLowerCase().includes(filterText.toLowerCase())).length ? (
+                      <p className='text-xs text-muted-foreground'>没有可添加的用户</p>
+                    ) : null}
+                  </div>
                 </div>
 
                 <div className='flex flex-wrap items-center gap-2 rounded border p-2'>

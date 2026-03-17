@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -12,7 +11,6 @@ export default function ConfigPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const navigate = useNavigate()
 
   useEffect(() => {
     const load = async () => {
@@ -88,9 +86,6 @@ export default function ConfigPage() {
     <div className='mx-auto max-w-6xl space-y-6 p-4 pb-8 md:p-8'>
       <div className='flex items-center justify-between'>
         <h1 className='text-2xl font-bold'>配置管理</h1>
-        <Button variant='outline' onClick={() => navigate('/admin')}>
-          返回后台
-        </Button>
       </div>
 
       <Card>
