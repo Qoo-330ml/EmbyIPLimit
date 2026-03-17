@@ -163,7 +163,7 @@ export default function AdminPage() {
         </Button>
       </div>
 
-      <div className='grid gap-4 md:grid-cols-4'>
+      <div className='grid grid-cols-2 gap-4 md:grid-cols-4'>
         <Card>
           <CardHeader className='pb-2'>
             <CardTitle className='text-sm'>用户总数</CardTitle>
