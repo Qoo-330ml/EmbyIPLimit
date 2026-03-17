@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { Moon, Sun } from 'lucide-react'
 
@@ -25,15 +25,6 @@ export default function AppShell() {
     setTheme(initial)
     document.documentElement.classList.toggle('dark', initial === 'dark')
   }, [])
-
-  const title = useMemo(() => {
-    if (location.pathname.startsWith('/admin/groups')) return '用户组管理'
-    if (location.pathname.startsWith('/admin/config')) return '配置管理'
-    if (location.pathname.startsWith('/admin/users')) return '用户管理'
-    if (location.pathname.startsWith('/admin')) return '管理后台'
-    if (location.pathname.startsWith('/search')) return '用户查询'
-    return 'Emby IPLimit'
-  }, [location.pathname])
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark'
@@ -86,26 +77,23 @@ export default function AppShell() {
       </header>
 
       <main>
-        {location.pathname !== '/' ? (
+        {location.pathname !== '/' && location.pathname.startsWith('/admin') ? (
           <div className='mx-auto max-w-7xl px-4 pt-4 md:px-8'>
-            <h2 className='text-lg font-semibold'>{title}</h2>
-            {location.pathname.startsWith('/admin') ? (
-              <div className='mt-3 flex flex-wrap gap-2'>
-                {adminSubNav.map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    className={({ isActive }) =>
-                      `rounded-md border px-3 py-1 text-sm transition-colors ${
-                        isActive ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
-                      }`
-                    }
-                  >
-                    {item.label}
-                  </NavLink>
-                ))}
-              </div>
-            ) : null}
+            <div className='mt-1 flex flex-wrap gap-2'>
+              {adminSubNav.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `rounded-md border px-3 py-1 text-sm transition-colors ${
+                      isActive ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
+                    }`
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </div>
           </div>
         ) : null}
         <Outlet />
