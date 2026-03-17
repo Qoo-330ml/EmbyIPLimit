@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button'
 
 const navItems = [
   { to: '/', label: '首页' },
-  { to: '/admin', label: '管理后台' },
+  { to: '/admin/users', label: '管理后台' },
 ]
 
 const adminSubNav = [
+  { to: '/admin/users', label: '用户' },
   { to: '/admin/config', label: '配置' },
   { to: '/admin/groups', label: '用户组' },
 ]
@@ -28,6 +29,7 @@ export default function AppShell() {
   const title = useMemo(() => {
     if (location.pathname.startsWith('/admin/groups')) return '用户组管理'
     if (location.pathname.startsWith('/admin/config')) return '配置管理'
+    if (location.pathname.startsWith('/admin/users')) return '用户管理'
     if (location.pathname.startsWith('/admin')) return '管理后台'
     if (location.pathname.startsWith('/search')) return '用户查询'
     return 'Emby IPLimit'

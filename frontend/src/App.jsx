@@ -17,7 +17,8 @@ export default function App() {
         <Route path='/' element={<AppShell />}>
           <Route index element={<HomePage />} />
           <Route path='search' element={<SearchPage />} />
-          <Route path='admin' element={<AdminPage />} />
+          <Route path='admin' element={<Navigate to='/admin/users' replace />} />
+          <Route path='admin/users' element={<AdminPage />} />
           <Route path='admin/config' element={<ConfigPage />} />
           <Route path='admin/groups' element={<GroupsPage />} />
         </Route>
