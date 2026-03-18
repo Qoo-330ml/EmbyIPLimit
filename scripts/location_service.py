@@ -17,7 +17,7 @@ class LocationService:
         project_dir = os.environ.get("IP_HIOFD_PROJECT_DIR", "/home/pdz/Fnos/项目/IP-hiofd")
         self.hiofd_script = os.path.join(project_dir, "hiofd_browser.js")
 
-    def _format_location(self, location: str, district: str, street: str) -> str:
+    def _format_location(self, location: str, district: str, street: str, isp: str) -> str:
         parts = []
 
         if location:
@@ -30,9 +30,8 @@ class LocationService:
         if street:
             parts.append(street.strip())
 
-        if parts:
-            return "·".join(parts)
-        return "未知位置"
+        left = "·".join(parts) if parts else "未知位置"
+        return f"{left}-{isp.strip()}" if isp else left
 
     def _query_hiofd(self, ip_address: str) -> dict[str, Any]:
         if not os.path.exists(self.hiofd_script):
@@ -65,7 +64,7 @@ class LocationService:
             "district": district,
             "street": street,
             "isp": isp,
-            "formatted": self._format_location(location, district, street),
+            "formatted": self._format_location(location, district, street, isp),
             "ts": int(time.time()),
         }
 
@@ -84,7 +83,7 @@ class LocationService:
             "district": "",
             "street": "",
             "isp": isp,
-            "formatted": self._format_location(location, "", ""),
+            "formatted": self._format_location(location, "", "", isp),
             "ts": int(time.time()),
         }
 
