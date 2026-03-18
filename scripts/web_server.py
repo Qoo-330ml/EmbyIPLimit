@@ -10,6 +10,7 @@ from flask import Flask, jsonify, request, send_from_directory
 from flask_login import LoginManager, UserMixin, current_user, login_required, login_user, logout_user
 
 from config_loader import load_config, save_config
+from location_service import LocationService
 
 
 class WebServer:
@@ -35,6 +36,7 @@ class WebServer:
 
         self.running = False
         self.server_thread = None
+        self.location_service = LocationService()
 
     def _register_routes(self):
         @self.login_manager.user_loader
@@ -473,22 +475,8 @@ class WebServer:
             return '未知位置'
 
         try:
-            from ip138.ip138 import ip138
-
-            result = ip138(ip_address)
-            if '归属地' in result:
-                location = result['归属地']
-                isp = result.get('运营商', '')
-                ip_type = result.get('iP类型', '')
-                info_parts = [location]
-                if isp:
-                    info_parts.append(isp)
-                if ip_type:
-                    info_parts.append(ip_type)
-                return ' | '.join(info_parts)
-            if '提示' in result:
-                return result.get('页面标题', '未知位置')
-            return '未知区域'
+            info = self.location_service.lookup(ip_address)
+            return info.get('formatted', '未知位置')
         except Exception as exc:
             print(f'📍 解析 {ip_address} 失败: {exc}')
             return '解析失败'
