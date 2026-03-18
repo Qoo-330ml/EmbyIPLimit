@@ -1,18 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="220" height="44" viewBox="0 0 220 44" fill="none">
   <defs>
     <linearGradient id="shieldGrad" x1="6" y1="4" x2="38" y2="40" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#34D399"/>
-      <stop offset="1" stop-color="#10B981"/>
+      <stop stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#2563EB"/>
     </linearGradient>
+    <clipPath id="cornerClip">
+      <circle cx="34.5" cy="31.5" r="8.5"/>
+    </clipPath>
   </defs>
 
   <!-- Shield mark -->
   <path d="M22 4L38 10V21C38 29.2 31.7 36.6 22 40C12.3 36.6 6 29.2 6 21V10L22 4Z" fill="url(#shieldGrad)"/>
-  <path d="M22 11L31 14.4V21C31 26.1 27.3 30.7 22 33C16.7 30.7 13 26.1 13 21V14.4L22 11Z" fill="#ECFDF5" opacity="0.95"/>
+  <path d="M22 11L31 14.4V21C31 26.1 27.3 30.7 22 33C16.7 30.7 13 26.1 13 21V14.4L22 11Z" fill="#EFF6FF" opacity="0.95"/>
 
-  <!-- small Emby-like corner icon (play glyph) -->
-  <circle cx="34.5" cy="31.5" r="8.5" fill="#ECFDF5" stroke="#10B981" stroke-width="2"/>
-  <path d="M32 27.8L38.5 31.5L32 35.2V27.8Z" fill="#10B981"/>
+  <!-- corner icon: left half from uploaded Emby symbol -->
+  <g clip-path="url(#cornerClip)">
+    <circle cx="34.5" cy="31.5" r="8.5" fill="#FFFFFF"/>
+    <image href="/emby-upload.jpg" x="26" y="23" width="17" height="17" preserveAspectRatio="xMidYMid slice"/>
+    <rect x="34.5" y="23" width="9" height="17" fill="#FFFFFF"/>
+  </g>
+  <circle cx="34.5" cy="31.5" r="8.5" fill="none" stroke="#2563EB" stroke-width="2"/>
 
   <!-- Brand text -->
   <text x="50" y="28" fill="#111827" font-size="18" font-family="Inter, Segoe UI, Arial, sans-serif" font-weight="700">EmbyIPLimit</text>
