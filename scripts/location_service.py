@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import json
 import os
-import subprocess
+import sys
 import time
 from typing import Any
 
@@ -13,9 +12,7 @@ class LocationService:
     def __init__(self, timeout_sec: int = 45):
         self.timeout_sec = timeout_sec
         self.cache: dict[str, dict[str, Any]] = {}
-
-        project_dir = os.environ.get("IP_HIOFD_PROJECT_DIR", "/home/pdz/Fnos/项目/IP-hiofd")
-        self.hiofd_script = os.path.join(project_dir, "hiofd_browser.js")
+        self.ip_hiofd_project_dir = os.environ.get("IP_HIOFD_PROJECT_DIR", "/home/pdz/Fnos/项目/IP-hiofd")
 
     def _format_location(self, location: str, district: str, street: str, isp: str) -> str:
         parts = []
@@ -34,28 +31,21 @@ class LocationService:
         return f"{left} | {isp.strip()}" if isp else left
 
     def _query_hiofd(self, ip_address: str) -> dict[str, Any]:
-        if not os.path.exists(self.hiofd_script):
-            raise FileNotFoundError(f"hiofd script not found: {self.hiofd_script}")
+        # 优先直接 import 已安装包；若未安装，则尝试从本地项目目录导入
+        try:
+            from ip_hiofd import HiofdIpClient  # type: ignore
+        except Exception:
+            if self.ip_hiofd_project_dir not in sys.path:
+                sys.path.insert(0, self.ip_hiofd_project_dir)
+            from ip_hiofd import HiofdIpClient  # type: ignore
 
-        proc = subprocess.run(
-            ["node", self.hiofd_script, ip_address],
-            capture_output=True,
-            text=True,
-            timeout=self.timeout_sec,
-            check=False,
-        )
-        if proc.returncode != 0:
-            raise RuntimeError((proc.stderr or proc.stdout or "hiofd query failed").strip())
+        client = HiofdIpClient()
+        result = client.lookup(ip_address, timeout_sec=self.timeout_sec)
 
-        data = json.loads((proc.stdout or "").strip())
-        result_ip = str(data.get("resultIp") or "").strip()
-        if result_ip and result_ip != ip_address:
-            raise RuntimeError(f"resultIp mismatch: {result_ip} != {ip_address}")
-
-        location = str(data.get("location") or "").strip()
-        district = str(data.get("district") or "").strip()
-        street = str(data.get("street") or "").strip()
-        isp = str(data.get("isp") or "").strip()
+        location = str(result.location or "").strip()
+        district = str(result.district or "").strip()
+        street = str(result.street or "").strip()
+        isp = str(result.isp or "").strip()
 
         return {
             "provider": "hiofd",

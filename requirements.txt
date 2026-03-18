@@ -4,3 +4,4 @@ pyyaml
 Werkzeug
 flask_login
 waitress
+playwright>=1.45.0
