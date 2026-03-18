@@ -8,19 +8,23 @@ RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-# Stage 2: runtime
-FROM python:3.12-alpine
+# Stage 2: runtime (Python + Playwright + Chromium)
+FROM mcr.microsoft.com/playwright/python:v1.52.0-jammy
 WORKDIR /app
 
-# Timezone (UTC+8)
-ENV TZ=Asia/Shanghai
-RUN apk add --no-cache tzdata \
-    && cp /usr/share/zoneinfo/${TZ} /etc/localtime \
-    && echo "${TZ}" > /etc/timezone
+ENV TZ=Asia/Shanghai \
+    PYTHONUNBUFFERED=1 \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+RUN ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime \
+    && echo ${TZ} > /etc/timezone
 
 # Python deps
-COPY requirements.txt .
+COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Install ip_hiofd directly from GitHub (public repo)
+RUN pip install --no-cache-dir git+https://github.com/Qoo-330ml/IP-hiofd.git@main
 
 # App files
 COPY scripts/ ./scripts/
@@ -32,5 +36,5 @@ RUN pip install --no-cache-dir ./ip138/
 COPY --from=frontend-builder /frontend/dist ./frontend/dist
 
 EXPOSE 5000
-VOLUME /app/data
+VOLUME ["/app/data"]
 ENTRYPOINT ["python", "scripts/main.py"]
