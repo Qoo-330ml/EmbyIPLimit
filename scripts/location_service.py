@@ -63,13 +63,17 @@ class LocationService:
             if not line:
                 continue
 
-            for key in ("归属地", "location", "Location"):
-                if line.startswith(f"{key}:") or line.startswith(f"{key}："):
-                    location = line.split(":", 1)[1].strip() if ":" in line else line.split("：", 1)[1].strip()
+            # qoo-ip138 会带日志前缀，例如："[12:00:00] [INFO] 归属地: 中国 北京"
+            # 因此不能只用 startswith，改为包含匹配并截取最后一个分隔符后的值。
+            for key in ("归属地", "归属地理位置", "location", "Location"):
+                if key in line and (":" in line or "：" in line):
+                    sep = "：" if "：" in line else ":"
+                    location = line.rsplit(sep, 1)[1].strip()
 
             for key in ("运营商", "isp", "ISP"):
-                if line.startswith(f"{key}:") or line.startswith(f"{key}："):
-                    isp = line.split(":", 1)[1].strip() if ":" in line else line.split("：", 1)[1].strip()
+                if key in line and (":" in line or "：" in line):
+                    sep = "：" if "：" in line else ":"
+                    isp = line.rsplit(sep, 1)[1].strip()
 
         return {
             "provider": "ip138",
