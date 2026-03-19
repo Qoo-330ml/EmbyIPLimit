@@ -50,7 +50,7 @@ services:
 ```
 
 > 说明：
-> - 镜像现已内置 Playwright + Chromium，并在构建时自动安装 `IP-hiofd`，用于更精细的 IP 归属地查询。
+> - 镜像现已内置 Playwright + Chromium，并通过 pip 安装 `ip-hiofd` 与 `qoo-ip138`，采用「IP-hiofd 优先、qoo-ip138 回退」双路归属地查询。
 > - 因引入浏览器运行时，镜像体积会比旧版明显更大。
 #### 2. 配置服务
 首次启动后，程序会在 `/path/to/emby-iplimit/data` 目录下生成默认配置文件 `config.yaml`。
@@ -67,7 +67,6 @@ cd Emby-IPLimit-main
 #### 2. 安装依赖
 ```bash
 pip install -r requirements.txt
-pip install git+https://github.com/Qoo-330ml/IP-hiofd.git@main
 python -m playwright install chromium
 ```
 

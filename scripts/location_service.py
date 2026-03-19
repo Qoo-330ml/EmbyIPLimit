@@ -1,24 +1,24 @@
 from __future__ import annotations
 
-import os
-import sys
+import json
+import shutil
+import subprocess
 import time
 from typing import Any
 
 
 class LocationService:
-    """IP 归属地查询服务：优先 IP-hiofd，失败回退 ip138。"""
+    """IP 归属地查询服务：优先 IP-hiofd，失败回退 qoo-ip138（均走在线 pip 包 CLI）。"""
 
     def __init__(self, timeout_sec: int = 45):
         self.timeout_sec = timeout_sec
         self.cache: dict[str, dict[str, Any]] = {}
-        self.ip_hiofd_project_dir = os.environ.get("IP_HIOFD_PROJECT_DIR", "/home/pdz/Fnos/项目/IP-hiofd")
 
     def _format_location(self, location: str, district: str, street: str, isp: str) -> str:
         parts = []
 
         if location:
-            # 页面默认返回 "中国 · 浙江 · 金华"，统一替换为空格再按 "·" 拼接
+            # 页面常见返回如 "中国 · 浙江 · 金华"，统一清理后拼接
             clean = location.replace(" ", "")
             parts.append(clean.replace("·", ""))
 
@@ -30,22 +30,38 @@ class LocationService:
         left = "·".join(parts) if parts else "未知位置"
         return f"{left} | {isp.strip()}" if isp else left
 
+    def _run_cmd(self, cmd: list[str]) -> str:
+        if not cmd:
+            raise ValueError("空命令")
+
+        if shutil.which(cmd[0]) is None:
+            raise FileNotFoundError(f"命令未找到: {cmd[0]}")
+
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=self.timeout_sec,
+            check=False,
+        )
+
+        if proc.returncode != 0:
+            stderr = (proc.stderr or "").strip()
+            stdout = (proc.stdout or "").strip()
+            detail = stderr or stdout or f"exit={proc.returncode}"
+            raise RuntimeError(f"命令执行失败: {' '.join(cmd)} | {detail}")
+
+        return (proc.stdout or "").strip()
+
     def _query_hiofd(self, ip_address: str) -> dict[str, Any]:
-        # 优先直接 import 已安装包；若未安装，则尝试从本地项目目录导入
-        try:
-            from ip_hiofd import HiofdIpClient  # type: ignore
-        except Exception:
-            if self.ip_hiofd_project_dir not in sys.path:
-                sys.path.insert(0, self.ip_hiofd_project_dir)
-            from ip_hiofd import HiofdIpClient  # type: ignore
+        # 按约定使用安装后 CLI：ip-hiofd <ip> --json
+        output = self._run_cmd(["ip-hiofd", ip_address, "--json"])
+        data = json.loads(output)
 
-        client = HiofdIpClient()
-        result = client.lookup(ip_address, timeout_sec=self.timeout_sec)
-
-        location = str(result.location or "").strip()
-        district = str(result.district or "").strip()
-        street = str(result.street or "").strip()
-        isp = str(result.isp or "").strip()
+        location = str(data.get("location") or "").strip()
+        district = str(data.get("district") or "").strip()
+        street = str(data.get("street") or "").strip()
+        isp = str(data.get("isp") or "").strip()
 
         return {
             "provider": "hiofd",
@@ -59,13 +75,24 @@ class LocationService:
         }
 
     def _query_ip138(self, ip_address: str) -> dict[str, Any]:
-        from ip138.ip138 import ip138
+        # 按约定使用安装后 CLI：qoo-ip138 --ip=<ip>
+        output = self._run_cmd(["qoo-ip138", f"--ip={ip_address}"])
 
-        result = ip138(ip_address)
-        location = str(result.get("归属地") or "").strip()
-        isp = str(result.get("运营商") or "").strip()
+        location = ""
+        isp = ""
+        for raw_line in output.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
 
-        # ip138 没有稳定区/街道字段，这里保持空
+            for key in ("归属地", "location", "Location"):
+                if line.startswith(f"{key}:") or line.startswith(f"{key}："):
+                    location = line.split(":", 1)[1].strip() if ":" in line else line.split("：", 1)[1].strip()
+
+            for key in ("运营商", "isp", "ISP"):
+                if line.startswith(f"{key}:") or line.startswith(f"{key}："):
+                    isp = line.split(":", 1)[1].strip() if ":" in line else line.split("：", 1)[1].strip()
+
         return {
             "provider": "ip138",
             "ip": ip_address,

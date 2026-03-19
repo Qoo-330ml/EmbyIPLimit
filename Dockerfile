@@ -27,14 +27,9 @@ RUN apt-get update \
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install ip_hiofd directly from GitHub (public repo)
-RUN pip install --no-cache-dir git+https://github.com/Qoo-330ml/IP-hiofd.git@main
-
 # App files
 COPY scripts/ ./scripts/
 COPY data/ ./data/
-COPY ip138/ ./ip138/
-RUN pip install --no-cache-dir ./ip138/
 
 # Frontend dist for SPA hosting
 COPY --from=frontend-builder /frontend/dist ./frontend/dist
