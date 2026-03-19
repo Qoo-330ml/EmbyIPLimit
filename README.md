@@ -50,8 +50,9 @@ services:
 ```
 
 > 说明：
-> - 镜像现已内置 Playwright + Chromium，并通过 pip 安装 `ip-hiofd` 与 `qoo-ip138`，采用「IP-hiofd 优先、qoo-ip138 回退」双路归属地查询。
-> - 因引入浏览器运行时，镜像体积会比旧版明显更大。
+> - 镜像已去除 Playwright + Chromium，采用更轻量的纯 Python 运行时。
+> - 归属地查询依赖：`ip-hiofd==0.2.0`（优先）与 `qoo-ip138`（回退）。
+> - 相比旧版浏览器运行时镜像，体积显著缩减。
 #### 2. 配置服务
 首次启动后，程序会在 `/path/to/emby-iplimit/data` 目录下生成默认配置文件 `config.yaml`。
 您可以直接编辑yaml配置文件，也可以打开5000端口登录管理员账号（admin/admin123）进行配置
@@ -67,12 +68,11 @@ cd Emby-IPLimit-main
 #### 2. 安装依赖
 ```bash
 pip install -r requirements.txt
-python -m playwright install chromium
 ```
 
 > 依赖说明（新环境）
-> - Python 包：`requests`、`Flask`、`pyyaml`、`Werkzeug`、`flask_login`、`waitress`、`playwright`、`ip-hiofd`、`qoo-ip138`
-> - 系统能力：可运行 Playwright Chromium（需安装浏览器运行时）
+> - Python 包：`requests`、`Flask`、`pyyaml`、`Werkzeug`、`flask_login`、`waitress`、`ip-hiofd==0.2.0`、`qoo-ip138`
+> - 无需额外安装 Chromium / Playwright 浏览器运行时
 > - CLI 命令：`ip-hiofd`、`qoo-ip138`（由对应 pip 包安装）
 
 #### 3. 复制配置模板

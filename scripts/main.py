@@ -32,21 +32,6 @@ def _check_cli_commands(commands: Iterable[str]) -> list[str]:
     return errors
 
 
-def _check_playwright_chromium() -> list[str]:
-    errors: list[str] = []
-    try:
-        from playwright.sync_api import sync_playwright
-
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            browser.close()
-    except Exception as exc:
-        errors.append(
-            "Playwright Chromium 不可用，请确认已执行 `python -m playwright install chromium` "
-            f"({exc})"
-        )
-    return errors
-
 
 def run_startup_self_check() -> bool:
     print("🔎 启动自检中...")
@@ -61,13 +46,11 @@ def run_startup_self_check() -> bool:
                 "werkzeug",
                 "flask_login",
                 "waitress",
-                "playwright",
                 "ip_hiofd",
             ]
         )
     )
     errors.extend(_check_cli_commands(["ip-hiofd", "qoo-ip138"]))
-    errors.extend(_check_playwright_chromium())
 
     if errors:
         print("❌ 启动自检失败：")
