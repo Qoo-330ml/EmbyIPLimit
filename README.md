@@ -70,6 +70,11 @@ pip install -r requirements.txt
 python -m playwright install chromium
 ```
 
+> 依赖说明（新环境）
+> - Python 包：`requests`、`Flask`、`pyyaml`、`Werkzeug`、`flask_login`、`waitress`、`playwright`、`ip-hiofd`、`qoo-ip138`
+> - 系统能力：可运行 Playwright Chromium（需安装浏览器运行时）
+> - CLI 命令：`ip-hiofd`、`qoo-ip138`（由对应 pip 包安装）
+
 #### 3. 复制配置模板
 ```bash
 cp scripts/default_config.yaml data/config.yaml
