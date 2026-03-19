@@ -14,7 +14,8 @@ WORKDIR /app
 
 ENV TZ=Asia/Shanghai \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # 仅保留必要系统依赖，避免 Playwright 官方全家桶镜像过大
 RUN apt-get update \

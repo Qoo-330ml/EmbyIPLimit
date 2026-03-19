@@ -4,6 +4,6 @@ pyyaml
 Werkzeug
 flask_login
 waitress
-playwright>=1.45.0
+playwright==1.58.0
 ip-hiofd
 qoo-ip138
