@@ -162,6 +162,18 @@ class WebServer:
 
             return jsonify({'success': True, 'user_id': user_id})
 
+        @self.app.delete('/api/admin/users/<user_id>')
+        @login_required
+        def admin_delete_user(user_id):
+            ok = self.emby_client.delete_user(user_id)
+            if not ok:
+                return jsonify({'error': '删除用户失败'}), 500
+            try:
+                self.db_manager.clear_user_expiry(user_id)
+            except Exception:
+                pass
+            return jsonify({'success': True})
+
         @self.app.post('/api/admin/users/toggle')
         @login_required
         def admin_toggle_user():
@@ -333,6 +345,21 @@ class WebServer:
         @login_required
         def admin_groups():
             return jsonify({'groups': self.db_manager.get_all_user_groups()})
+
+        @self.app.get('/api/admin/invites')
+        @login_required
+        def admin_list_invites():
+            invites = self.db_manager.list_invites()
+            service_url = (self.config.get('service', {}).get('external_url') or '').rstrip('/')
+            for inv in invites:
+                inv['invite_url'] = f"{service_url}/invite/{inv['code']}" if service_url else f"/invite/{inv['code']}"
+            return jsonify({'invites': invites})
+
+        @self.app.delete('/api/admin/invites/<code>')
+        @login_required
+        def admin_delete_invite(code):
+            self.db_manager.delete_invite(code)
+            return jsonify({'success': True})
 
         @self.app.post('/api/admin/invites')
         @login_required
