@@ -1,91 +1,110 @@
-20260309：根据意见增加了用户封禁时间，越改越杂了
+# EmbyIPLimit
 
-20260302:改用ip138查询ip归属地，同时修复了admin页面打开很慢的问题；增加了点emoji，调整了下ui；想法有限，可能不会再更新
+EmbyIPLimit 是一个面向 Emby 的账号安全与运营辅助工具：
+- 实时监控播放会话
+- 识别“同一账号多 IP 并发播放”并自动处理
+- 提供可视化后台（用户管理 / 用户组 / 配置）
+- 支持邀请注册链路与到期时间管理
 
-20260119：修复同一局域网下ipv6的问题，新增了一个web页面，供游客查询播放情况，及管理员简单配置。
-目前已知存在问题：同局域网下v4和v6的不同设备无法识别是否是同一局域网
+---
 
+## 1. 项目总结（当前版本）
 
-# Emby IPLimit 项目
+这个项目现在已经从“单纯封禁脚本”升级为一套轻量后台系统，核心能力包括：
 
-## 项目简介
+### 安全监控能力
+- 实时轮询 Emby 活跃会话
+- 支持 IPv4 / IPv6 提取与同网段判断
+- 按阈值触发告警（可自动禁用账号）
+- 白名单用户保护
+- Webhook 通知（可自定义 body）
 
-Emby IPLimit 是一个专门用于监控和限制 Emby 媒体服务器用户访问行为的工具。它能够实时监控用户的播放会话，检测异常登录行为（如同一用户在多个不同IP地址同时播放），并在达到阈值时自动禁用用户账号，提供完整的安全防护和访问控制功能。
+### 用户运营能力
+- 用户列表、批量启用/禁用
+- 到期时间管理（单个/批量）
+- 永不过期设置
+- 用户组管理（建组、加成员、移除成员）
+- 新建用户（支持模板用户复制权限）
+- 快速删除用户
 
-## 主要功能
+### 邀请注册能力
+- 生成邀请链接（有效时长、可用人数、用户组、账号到期时间）
+- 邀请链接历史列表（使用进度、失效态、一键复制、作废删除）
+- 用户访问 `/invite/:code` 自助注册
+- 注册成功后自动跳转到 Emby 外网地址
 
-- 🔍 **实时会话监控** - 监控 Emby 用户的播放会话状态
-- 🌐 **IP 地理位置查询** - 自动获取用户 IP 地址的地理位置信息
-- 🚨 **异常行为检测** - 检测同一用户在不同 IP 地址的并发播放行为
-- 🛡️ **自动安全防护** - 达到阈值时自动禁用问题用户
-- 📊 **会话记录存储** - 将播放会话记录到本地 SQLite 数据库
-- 🔔 **Webhook 通知** - 支持自定义格式的 Webhook 通知
-- ⚪ **白名单管理** - 白名单内用户不会被禁用
-- 📝 **详细日志** - 完整的操作日志和监控记录
+### 前端体验
+- React + Vite 单页应用
+- 管理后台登录态
+- 移动端用户列表卡片化（避免横向滚动）
+- 桌面端表格列宽优化
 
-## 技术特性
+---
 
-- **支持 IPv4 和 IPv6** - 完整支持双栈网络环境
-- **灵活配置** - 可自定义监控间隔、告警阈值等参数
-- **高兼容性** - 支持各种 Webhook 服务（钉钉、企业微信、飞书等）
-- **Docker 支持** - 提供完整的 Docker 部署方案
+## 2. 分支说明（重点）
 
-## 安装部署
+仓库维护两个主分支，**功能基本同步**，保留一个核心差异：IP 归属地解析策略。
 
-### 方式一：Docker Compose部署（推荐）
+### `main`
+- 归属地解析：`qoo-ip138`
+- Docker 标签：`latest` 系列
 
-#### 1. 拉取镜像
-```bash
+### `ip-hiofd`
+- 归属地解析：`ip-hiofd`
+- Docker 标签：`ip-hiofd` 系列
+
+> 约定：除了归属地解析器及对应发布标签差异，其他功能尽量保持一致。
+
+---
+
+## 3. 目录结构
+
+```txt
+EmbyIPLimit/
+├─ scripts/                 # 后端（Flask API + 监控逻辑 + 数据层）
+├─ frontend/                # 前端（React + Vite）
+├─ data/                    # 配置与数据库（运行时）
+├─ Dockerfile
+├─ requirements.txt
+└─ README.md
+```
+
+---
+
+## 4. 安装与运行
+
+## 4.1 Docker Compose（推荐）
+
+```yaml
 services:
   emby-iplimit:
-    image: pdzhou/emby-iplimit:latest
+    image: pdzhou/emby-iplimit:latest   # 若使用 ip-hiofd 分支镜像请改为 ip-hiofd 标签
     container_name: emby-iplimit
     restart: always
-    tty: true
-    network_mode: bridge
     ports:
-      - 5000:5000
+      - "5000:5000"
     volumes:
       - ./data:/app/data
 ```
 
-> 说明：
-> - 镜像已去除 Playwright + Chromium，采用更轻量的纯 Python 运行时。
-> - 归属地查询依赖：`qoo-ip138`。
-> - 相比旧版浏览器运行时镜像，体积显著缩减。
-#### 2. 配置服务
-首次启动后，程序会在 `/path/to/emby-iplimit/data` 目录下生成默认配置文件 `config.yaml`。
-您可以直接编辑yaml配置文件，也可以打开5000端口登录管理员账号（admin/admin123）进行配置
+启动后会自动在 `data/config.yaml` 生成配置模板。
 
-### 方式二：本地部署
+---
 
-#### 1. 克隆项目
+## 4.2 本地运行
+
+### 1) 克隆仓库
 ```bash
 git clone https://github.com/Qoo-330ml/EmbyIPLimit.git
-cd Emby-IPLimit-main
+cd EmbyIPLimit
 ```
 
-#### 2. 安装依赖
+### 2) 安装依赖
 ```bash
 pip install -r requirements.txt
 ```
 
-> 依赖说明（新环境）
-> - Python 包：`requests`、`Flask`、`pyyaml`、`Werkzeug`、`flask_login`、`waitress`、`qoo-ip138`
-> - 无需额外安装 Chromium / Playwright 浏览器运行时
-> - CLI 命令：`qoo-ip138`（由对应 pip 包安装）
-
-#### 3. 复制配置模板
-```bash
-cp scripts/default_config.yaml data/config.yaml
-```
-
-#### 4. 编辑配置
-```bash
-vim data/config.yaml
-```
-
-#### 5. 构建前端（React + Vite）
+### 3) 前端构建
 ```bash
 cd frontend
 npm install
@@ -93,11 +112,94 @@ npm run build
 cd ..
 ```
 
-#### 6. 运行服务
+### 4) 启动
 ```bash
-python scripts/main.py
+python3 scripts/main.py
 ```
 
-> 说明：
-> - 现在 Web 界面由 `frontend/dist` 托管，Flask 仅提供 `/api/*` 接口 + SPA 静态资源。
-> - 如需前端热更新开发，可在 `frontend` 目录执行 `npm run dev`，默认代理到 `http://127.0.0.1:5000`。
+默认监听：`http://0.0.0.0:5000`
+
+---
+
+## 5. 配置说明（data/config.yaml）
+
+关键字段：
+
+```yaml
+emby:
+  server_url: https://emby.example.com      # Emby 内网/直连地址（API调用）
+  external_url: https://emby.example.com    # Emby 外网地址（邀请注册后跳转）
+  api_key: your_api_key_here
+
+service:
+  external_url: https://emby-iplimit.example.com:5000  # EmbyIPLimit 对外访问地址（用于生成邀请链接）
+
+monitor:
+  check_interval: 10
+
+notifications:
+  enable_alerts: true
+  alert_threshold: 2
+
+security:
+  auto_disable: true
+  whitelist:
+    - admin
+```
+
+后台登录配置：
+```yaml
+web:
+  admin_username: admin
+  admin_password: admin123
+```
+
+> 建议生产环境立即修改默认后台账号密码。
+
+---
+
+## 6. 管理后台功能速览
+
+- ` /admin/users`：用户管理
+  - 新建用户（模板复制权限）
+  - 邀请管理（生成、复制、删除、进度）
+  - 批量操作（到期、封禁、启用）
+  - 删除用户
+- `/admin/groups`：用户组管理
+- `/admin/config`：配置管理
+
+公开页面：
+- `/search`：用户播放查询
+- `/invite/:code`：邀请注册页面
+
+---
+
+## 7. 常见问题
+
+### Q1: 邀请链接生成后无法访问？
+先检查 `service.external_url` 是否填写为真实可访问地址（含端口）。
+
+### Q2: 注册成功后跳转地址不对？
+检查 `emby.external_url`。
+
+### Q3: 页面改了但看不到效果？
+确认已执行 `npm run build`，并重启服务。
+
+---
+
+## 8. 开发说明
+
+- 前端开发热更新：
+  ```bash
+  cd frontend
+  npm run dev
+  ```
+- 后端主程序：`scripts/main.py`
+- API 路由：`scripts/web_server.py`
+- 数据层：`scripts/database.py`
+
+---
+
+## 9. License
+
+按仓库实际 License 文件为准。若无明确声明，请在使用前自行确认。
