@@ -1,4 +1,4 @@
-# EmbyQ
+# EmbyQ（原EmbyIPLimit)
 
 EmbyQ 是一个面向 Emby 的账号安全与运营辅助工具：
 - 实时监控播放会话
