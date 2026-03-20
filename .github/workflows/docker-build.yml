@@ -74,4 +74,5 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags:
+            pdzhou/embyq:ip-hiofd
             pdzhou/embyq:${{ steps.tag_alias.outputs.ALIAS }}-${{ steps.date.outputs.DATE }}
