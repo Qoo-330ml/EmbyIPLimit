@@ -324,7 +324,7 @@ export default function AdminPage() {
           </div>
 
           <div className='hidden overflow-x-auto md:block'>
-            <Table>
+            <Table className='w-full table-fixed'>
             <TableHeader>
               <TableRow>
                 <TableHead className='w-12'>
@@ -333,11 +333,11 @@ export default function AdminPage() {
                     onChange={(e) => toggleAll(e.target.checked)}
                   />
                 </TableHead>
-                <TableHead>用户</TableHead>
-                <TableHead>到期时间</TableHead>
-                <TableHead>状态</TableHead>
-                <TableHead>操作</TableHead>
-                <TableHead className='text-right'>删除</TableHead>
+                <TableHead className='w-[36%]'>用户</TableHead>
+                <TableHead className='w-[18%]'>到期时间</TableHead>
+                <TableHead className='w-[12%]'>状态</TableHead>
+                <TableHead className='w-[24%]'>操作</TableHead>
+                <TableHead className='w-[10%] text-right'>删除</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -351,20 +351,21 @@ export default function AdminPage() {
                         onChange={(e) => setSelected((prev) => ({ ...prev, [u.id]: e.target.checked }))}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className='align-top'>
                       <button
                         type='button'
-                        className='text-left text-primary hover:underline'
+                        className='block w-full text-left text-primary hover:underline'
                         onClick={() => navigate(`/search?username=${encodeURIComponent(u.name)}`)}
                       >
                         <UserIdentity name={u.name} groups={u.groups || []} />
                       </button>
                     </TableCell>
-                    <TableCell>{u.never_expire ? '永不过期' : u.expiry_date || '未设置'}</TableCell>
-                    <TableCell>
+                    <TableCell className='align-top whitespace-nowrap'>{u.never_expire ? '永不过期' : u.expiry_date || '未设置'}</TableCell>
+                    <TableCell className='align-top'>
                       <Badge variant={status.variant}>{status.label}</Badge>
                     </TableCell>
-                    <TableCell className='space-x-2'>
+                    <TableCell className='align-top'>
+                      <div className='flex flex-wrap gap-2'>
                       <Button size='sm' variant='outline' onClick={() => openExpiryEditor(u)}>
                         设置到期
                       </Button>
@@ -377,8 +378,9 @@ export default function AdminPage() {
                           禁用
                         </Button>
                       )}
+                      </div>
                     </TableCell>
-                    <TableCell className='text-right'>
+                    <TableCell className='align-top text-right'>
                       <Button
                         size='sm'
                         variant='destructive'
