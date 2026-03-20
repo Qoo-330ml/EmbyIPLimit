@@ -55,14 +55,26 @@ jobs:
         id: date
         run: echo "DATE=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
 
-      - name: Resolve docker tag alias by branch
-        id: tag_alias
+      - name: Resolve docker tags by branch
+        id: docker_tags
         run: |
           if [ "${GITHUB_REF_NAME}" = "ip-hiofd" ]; then
-            echo "ALIAS=ip-hiofd" >> $GITHUB_OUTPUT
+            {
+              echo 'TAGS<<EOF'
+              echo 'pdzhou/embyq:ip-hiofd'
+              echo "pdzhou/embyq:ip-hiofd-${DATE}"
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
           else
-            echo "ALIAS=latest" >> $GITHUB_OUTPUT
+            {
+              echo 'TAGS<<EOF'
+              echo 'pdzhou/embyq:latest'
+              echo "pdzhou/embyq:latest-${DATE}"
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
           fi
+        env:
+          DATE: ${{ steps.date.outputs.DATE }}
 
       - name: Build and push multi-arch Docker image
         uses: docker/build-push-action@v6
@@ -73,6 +85,4 @@ jobs:
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags:
-            pdzhou/embyq:ip-hiofd
-            pdzhou/embyq:${{ steps.tag_alias.outputs.ALIAS }}-${{ steps.date.outputs.DATE }}
+          tags: ${{ steps.docker_tags.outputs.TAGS }}
