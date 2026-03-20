@@ -391,10 +391,6 @@ class DatabaseManager:
 
     def consume_invite(self, code):
         with sqlite3.connect(self.db_path) as conn:
-            invite = self.get_invite_by_code(code)
-            if not invite:
-                return False
-
             conn.execute('''
                 UPDATE invites
                 SET used_count = used_count + 1,
@@ -404,6 +400,38 @@ class DatabaseManager:
             ''', (code,))
             conn.commit()
             return True
+
+    def list_invites(self):
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute('''
+                SELECT code, expires_at, max_uses, used_count, group_id,
+                       account_expiry_date, is_active, created_by, created_at
+                FROM invites
+                ORDER BY created_at DESC
+            ''')
+            rows = cursor.fetchall()
+            return [
+                {
+                    'code': row[0],
+                    'expires_at': row[1],
+                    'max_uses': row[2],
+                    'used_count': row[3],
+                    'group_id': row[4],
+                    'account_expiry_date': row[5],
+                    'is_active': bool(row[6]),
+                    'created_by': row[7],
+                    'created_at': row[8],
+                }
+                for row in rows
+            ]
+
+    def delete_invite(self, code):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                'UPDATE invites SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE code = ?',
+                (code,),
+            )
+            conn.commit()
 
     def is_invite_available(self, code):
         invite = self.get_invite_by_code(code)

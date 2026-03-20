@@ -141,3 +141,14 @@ class EmbyClient:
         except Exception as e:
             print(f"获取用户列表失败: {str(e)}")
             return []
+
+    def delete_user(self, user_id):
+        try:
+            response = self.session.delete(
+                f"{self.server_url}/emby/Users/{user_id}",
+                timeout=8,
+            )
+            return response.status_code in (200, 204)
+        except Exception as e:
+            print(f"删除用户失败: {str(e)}")
+            return False

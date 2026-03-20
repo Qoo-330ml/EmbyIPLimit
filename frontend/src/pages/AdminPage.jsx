@@ -34,6 +34,7 @@ export default function AdminPage() {
   const [inviteGroupId, setInviteGroupId] = useState('')
   const [inviteExpiryDate, setInviteExpiryDate] = useState('')
   const [inviteUrl, setInviteUrl] = useState('')
+  const [inviteList, setInviteList] = useState([])
   const [expiryDate, setExpiryDate] = useState('')
   const [neverExpire, setNeverExpire] = useState(false)
   const navigate = useNavigate()
@@ -69,9 +70,19 @@ export default function AdminPage() {
     }
   }
 
+  const loadInvites = async () => {
+    try {
+      const data = await apiRequest('/admin/invites')
+      setInviteList(data.invites || [])
+    } catch (e) {
+      // ignore
+    }
+  }
+
   useEffect(() => {
     loadUsers()
     loadGroups()
+    loadInvites()
   }, [])
 
   const toggleAll = (checked) => {
@@ -170,12 +181,6 @@ export default function AdminPage() {
       <div className='flex flex-wrap items-center justify-between gap-2'>
         <h1 className='text-2xl font-bold'>用户管理</h1>
         <div className='flex flex-wrap items-center gap-2'>
-          <Button variant='secondary' onClick={() => { setInviteOpen(true); setInviteUrl('') }}>
-            <Link2 className='mr-2 h-4 w-4' /> 邀请
-          </Button>
-          <Button onClick={() => setCreateOpen(true)}>
-            <UserPlus className='mr-2 h-4 w-4' /> 新建用户
-          </Button>
           <Button variant='outline' onClick={() => navigate('/admin/users')}>
             用户
           </Button>
@@ -247,14 +252,79 @@ export default function AdminPage() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
           <CardTitle>用户列表</CardTitle>
+          <div className='flex flex-wrap items-center gap-2'>
+            <Button variant='secondary' onClick={() => { setInviteOpen(true); setInviteUrl(''); loadInvites() }}>
+              <Link2 className='mr-2 h-4 w-4' /> 邀请
+            </Button>
+            <Button onClick={() => setCreateOpen(true)}>
+              <UserPlus className='mr-2 h-4 w-4' /> 新建用户
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? <p className='text-sm text-muted-foreground'>加载中...</p> : null}
           {error ? <p className='text-sm text-destructive'>{error}</p> : null}
           {notice ? <p className='mb-3 text-sm text-primary'>{notice}</p> : null}
-          <Table>
+
+          <div className='space-y-3 md:hidden'>
+            {users.map((u) => {
+              const status = getUserStatus(u)
+              return (
+                <Card key={`mobile-${u.id}`}>
+                  <CardContent className='space-y-2 p-4'>
+                    <div className='flex items-start justify-between gap-2'>
+                      <button
+                        type='button'
+                        className='text-left text-primary hover:underline'
+                        onClick={() => navigate(`/search?username=${encodeURIComponent(u.name)}`)}
+                      >
+                        <UserIdentity name={u.name} groups={u.groups || []} />
+                      </button>
+                      <Badge variant={status.variant}>{status.label}</Badge>
+                    </div>
+                    <div className='text-sm text-muted-foreground'>
+                      到期：{u.never_expire ? '永不过期' : u.expiry_date || '未设置'}
+                    </div>
+                    <div className='flex flex-wrap gap-2'>
+                      <Button size='sm' variant='outline' onClick={() => openExpiryEditor(u)}>
+                        设置到期
+                      </Button>
+                      {u.is_disabled ? (
+                        <Button size='sm' onClick={() => updateUser(u.id, 'unban')}>
+                          启用
+                        </Button>
+                      ) : (
+                        <Button size='sm' variant='destructive' onClick={() => updateUser(u.id, 'ban')}>
+                          禁用
+                        </Button>
+                      )}
+                      <Button
+                        size='sm'
+                        variant='destructive'
+                        onClick={async () => {
+                          if (!window.confirm(`确定删除用户 ${u.name} 吗？`)) return
+                          try {
+                            await apiRequest(`/admin/users/${u.id}`, { method: 'DELETE' })
+                            setNotice(`已删除用户 ${u.name}`)
+                            await loadUsers()
+                          } catch (e) {
+                            setNotice(`删除失败：${e.message}`)
+                          }
+                        }}
+                      >
+                        删除
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+
+          <div className='hidden overflow-x-auto md:block'>
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className='w-12'>
@@ -267,6 +337,7 @@ export default function AdminPage() {
                 <TableHead>到期时间</TableHead>
                 <TableHead>状态</TableHead>
                 <TableHead>操作</TableHead>
+                <TableHead className='text-right'>删除</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -307,11 +378,30 @@ export default function AdminPage() {
                         </Button>
                       )}
                     </TableCell>
+                    <TableCell className='text-right'>
+                      <Button
+                        size='sm'
+                        variant='destructive'
+                        onClick={async () => {
+                          if (!window.confirm(`确定删除用户 ${u.name} 吗？`)) return
+                          try {
+                            await apiRequest(`/admin/users/${u.id}`, { method: 'DELETE' })
+                            setNotice(`已删除用户 ${u.name}`)
+                            await loadUsers()
+                          } catch (e) {
+                            setNotice(`删除失败：${e.message}`)
+                          }
+                        }}
+                      >
+                        删除
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 )
               })}
             </TableBody>
-          </Table>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
