@@ -50,7 +50,7 @@ def run_startup_self_check() -> bool:
             ]
         )
     )
-    errors.extend(_check_cli_commands(["ip-hiofd", "qoo-ip138"]))
+    errors.extend(_check_cli_commands(["ip-hiofd"]))
 
     if errors:
         print("❌ 启动自检失败：")

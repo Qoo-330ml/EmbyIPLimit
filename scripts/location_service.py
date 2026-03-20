@@ -8,7 +8,7 @@ from typing import Any
 
 
 class LocationService:
-    """IP 归属地查询服务：优先 IP-hiofd，失败回退 qoo-ip138（均走在线 pip 包 CLI）。"""
+    """IP 归属地查询服务：仅使用 IP-hiofd（在线 pip 包 CLI）。"""
 
     def __init__(self, timeout_sec: int = 45):
         self.timeout_sec = timeout_sec
@@ -99,36 +99,6 @@ class LocationService:
             f"Hiofd 多次查询失败({self.hiofd_retries}次): {last_err}"
         )
 
-    def _query_ip138(self, ip_address: str) -> dict[str, Any]:
-        # 按约定使用安装后 CLI：qoo-ip138 --ip=<ip>
-        output = self._run_cmd(["qoo-ip138", f"--ip={ip_address}"])
-
-        location = ""
-        isp = ""
-        for raw_line in output.splitlines():
-            line = raw_line.strip()
-            if not line:
-                continue
-
-            for key in ("归属地", "location", "Location"):
-                if line.startswith(f"{key}:") or line.startswith(f"{key}："):
-                    location = line.split(":", 1)[1].strip() if ":" in line else line.split("：", 1)[1].strip()
-
-            for key in ("运营商", "isp", "ISP"):
-                if line.startswith(f"{key}:") or line.startswith(f"{key}："):
-                    isp = line.split(":", 1)[1].strip() if ":" in line else line.split("：", 1)[1].strip()
-
-        return {
-            "provider": "ip138",
-            "ip": ip_address,
-            "location": location,
-            "district": "",
-            "street": "",
-            "isp": isp,
-            "formatted": self._format_location(location, "", "", isp),
-            "ts": int(time.time()),
-        }
-
     def lookup(self, ip_address: str) -> dict[str, Any]:
         if not ip_address:
             return {
@@ -148,21 +118,17 @@ class LocationService:
         try:
             info = self._query_hiofd(ip_address)
         except Exception as e:
-            print(f"📍 Hiofd 查询失败({ip_address}): {e}，回退 ip138")
-            try:
-                info = self._query_ip138(ip_address)
-            except Exception as e2:
-                print(f"📍 ip138 查询也失败({ip_address}): {e2}")
-                info = {
-                    "provider": "none",
-                    "ip": ip_address,
-                    "location": "",
-                    "district": "",
-                    "street": "",
-                    "isp": "",
-                    "formatted": "解析失败",
-                    "ts": int(time.time()),
-                }
+            print(f"📍 Hiofd 查询失败({ip_address}): {e}")
+            info = {
+                "provider": "none",
+                "ip": ip_address,
+                "location": "",
+                "district": "",
+                "street": "",
+                "isp": "",
+                "formatted": "解析失败",
+                "ts": int(time.time()),
+            }
 
         self.cache[ip_address] = info
         return info
