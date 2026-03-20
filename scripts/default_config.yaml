@@ -5,7 +5,7 @@ emby:
   external_url: https://emby.example.com
   api_key: your_api_key_here
 service:
-  external_url: https://emby-iplimit.example.com:5000
+  external_url: https://embyq.example.com:5000
 monitor:
   check_interval: 10
 notifications:

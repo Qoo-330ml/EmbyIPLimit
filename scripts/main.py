@@ -62,7 +62,7 @@ def run_startup_self_check() -> bool:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Emby IPLimit")
+    parser = argparse.ArgumentParser(description="EmbyQ")
     parser.add_argument("--self-check", action="store_true", help="仅执行启动自检并退出")
     args = parser.parse_args()
 

@@ -3,7 +3,7 @@ import shutil
 import yaml
 
 def get_base_dir():
-    """获取项目根目录（EmbyIPLimit目录）"""
+    """获取项目根目录（EmbyQ目录）"""
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def get_scripts_dir():
@@ -21,7 +21,7 @@ DEFAULT_CONFIG = {
         'api_key': 'your_api_key_here'
     },
     'service': {
-        'external_url': 'https://emby-iplimit.example.com:5000'
+        'external_url': 'https://embyq.example.com:5000'
     },
     'database': {
         'name': 'emby_playback.db'

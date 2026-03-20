@@ -121,7 +121,7 @@ export default function ConfigPage() {
             />
           </div>
           <div className='space-y-2'>
-            <label className='text-sm text-muted-foreground'>IPLimit 外网地址</label>
+            <label className='text-sm text-muted-foreground'>EmbyQ 外网地址</label>
             <Input
               value={config.service?.external_url || ''}
               onChange={(e) => update(['service', 'external_url'], e.target.value)}

@@ -26,7 +26,7 @@ class WebServer:
 
         # 禁用 Flask 默认 static 根路由，避免与 SPA 深链接路由冲突（如 /admin/config 刷新 404）
         self.app = Flask(__name__, static_folder=None)
-        self.app.secret_key = 'emby_iplimit_secret_key'
+        self.app.secret_key = 'embyq_secret_key'
 
         self.login_manager = LoginManager()
         self.login_manager.init_app(self.app)

@@ -1,6 +1,6 @@
-# EmbyIPLimit
+# EmbyQ
 
-EmbyIPLimit 是一个面向 Emby 的账号安全与运营辅助工具：
+EmbyQ 是一个面向 Emby 的账号安全与运营辅助工具：
 - 实时监控播放会话
 - 识别“同一账号多 IP 并发播放”并自动处理
 - 提供可视化后台（用户管理 / 用户组 / 配置）
@@ -60,7 +60,7 @@ EmbyIPLimit 是一个面向 Emby 的账号安全与运营辅助工具：
 ## 3. 目录结构
 
 ```txt
-EmbyIPLimit/
+EmbyQ/
 ├─ scripts/                 # 后端（Flask API + 监控逻辑 + 数据层）
 ├─ frontend/                # 前端（React + Vite）
 ├─ data/                    # 配置与数据库（运行时）
@@ -77,9 +77,9 @@ EmbyIPLimit/
 
 ```yaml
 services:
-  emby-iplimit:
-    image: pdzhou/emby-iplimit:latest   # 若使用 ip-hiofd 分支镜像请改为 ip-hiofd 标签
-    container_name: emby-iplimit
+  embyq:
+    image: pdzhou/embyq:latest   # 若使用 ip-hiofd 分支镜像请改为 ip-hiofd 标签
+    container_name: embyq
     restart: always
     ports:
       - "5000:5000"
@@ -96,7 +96,7 @@ services:
 ### 1) 克隆仓库
 ```bash
 git clone https://github.com/Qoo-330ml/EmbyIPLimit.git
-cd EmbyIPLimit
+cd EmbyQ
 ```
 
 ### 2) 安装依赖
@@ -132,7 +132,7 @@ emby:
   api_key: your_api_key_here
 
 service:
-  external_url: https://emby-iplimit.example.com:5000  # EmbyIPLimit 对外访问地址（用于生成邀请链接）
+  external_url: https://embyq.example.com:5000  # EmbyQ 对外访问地址（用于生成邀请链接）
 
 monitor:
   check_interval: 10

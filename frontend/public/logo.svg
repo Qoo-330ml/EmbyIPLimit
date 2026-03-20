@@ -22,5 +22,5 @@
   <circle cx="34.5" cy="31.5" r="8.5" fill="none" stroke="#2563EB" stroke-width="2"/>
 
   <!-- Brand text -->
-  <text x="50" y="28" fill="#111827" font-size="18" font-family="Inter, Segoe UI, Arial, sans-serif" font-weight="700">EmbyIPLimit</text>
+  <text x="50" y="28" fill="#111827" font-size="18" font-family="Inter, Segoe UI, Arial, sans-serif" font-weight="700">EmbyQ</text>
 </svg>
