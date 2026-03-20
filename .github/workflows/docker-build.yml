@@ -74,4 +74,4 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags:
-            pdzhou/emby-iplimit:${{ steps.tag_alias.outputs.ALIAS }}-${{ steps.date.outputs.DATE }}
+            pdzhou/embyq:${{ steps.tag_alias.outputs.ALIAS }}-${{ steps.date.outputs.DATE }}

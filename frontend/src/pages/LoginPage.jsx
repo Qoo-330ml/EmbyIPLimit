@@ -36,7 +36,7 @@ export default function LoginPage() {
       <Card className='w-full max-w-md'>
         <CardHeader>
           <CardTitle>管理员登录</CardTitle>
-          <CardDescription>登录 EmbyIPLimit 管理后台</CardDescription>
+          <CardDescription>登录 EmbyQ 管理后台</CardDescription>
         </CardHeader>
         <CardContent>
           <form className='space-y-4' onSubmit={onSubmit}>
