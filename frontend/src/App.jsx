@@ -8,6 +8,7 @@ import AdminPage from '@/pages/AdminPage'
 import ConfigPage from '@/pages/ConfigPage'
 import GroupsPage from '@/pages/GroupsPage'
 import InviteRegisterPage from '@/pages/InviteRegisterPage'
+import AboutPage from '@/pages/AboutPage'
 
 export default function App() {
   return (
@@ -15,16 +16,15 @@ export default function App() {
       <Routes>
         <Route path='/login' element={<LoginPage />} />
         <Route path='/invite/:code' element={<InviteRegisterPage />} />
-
         <Route path='/' element={<AppShell />}>
           <Route index element={<HomePage />} />
           <Route path='search' element={<SearchPage />} />
+          <Route path='about' element={<AboutPage />} />
           <Route path='admin' element={<Navigate to='/admin/users' replace />} />
           <Route path='admin/users' element={<AdminPage />} />
           <Route path='admin/config' element={<ConfigPage />} />
           <Route path='admin/groups' element={<GroupsPage />} />
         </Route>
-
         <Route path='*' element={<Navigate to='/' replace />} />
       </Routes>
     </BrowserRouter>

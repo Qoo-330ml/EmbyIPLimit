@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { Moon, Sun } from 'lucide-react'
+import { Moon, Sun, Info } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { apiRequest } from '@/types/api'
@@ -75,6 +75,11 @@ export default function AppShell() {
             <Button size='icon' variant='outline' onClick={toggleTheme} title='切换主题'>
               {theme === 'dark' ? <Sun className='h-4 w-4' /> : <Moon className='h-4 w-4' />}
             </Button>
+            <Link to='/about'>
+              <Button size='icon' variant='outline' title='关于'>
+                <Info className='h-4 w-4' />
+              </Button>
+            </Link>
           </div>
         </div>
         <div className='mx-auto flex max-w-7xl gap-2 px-4 pb-3 md:hidden'>

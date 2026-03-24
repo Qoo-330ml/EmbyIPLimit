@@ -147,6 +147,28 @@ export default function ConfigPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>IP 归属地解析</CardTitle>
+        </CardHeader>
+        <CardContent className='space-y-4'>
+          <label className='flex items-start gap-2 text-sm'>
+            <input
+              type='checkbox'
+              checked={Boolean(config.ip_location?.use_hiofd)}
+              onChange={(e) => update(['ip_location', 'use_hiofd'], e.target.checked)}
+              className='mt-1'
+            />
+            <div className='flex-1'>
+              <div className='font-medium'>启用自建库解析</div>
+              <div className='text-xs text-muted-foreground mt-1'>
+                默认使用IP138解析归属地，启用本开关将切换到优先自建归属地库+备用IP数据云（付费库），同时也会开启上传IP数据到自建库以丰富自建库数据
+              </div>
+            </div>
+          </label>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>安全与通知</CardTitle>
         </CardHeader>
         <CardContent className='space-y-4'>
