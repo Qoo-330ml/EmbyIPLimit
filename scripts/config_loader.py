@@ -48,10 +48,7 @@ DEFAULT_CONFIG = {
     'ip_location': {
         'use_hiofd': False,
         'geocache': {
-            'enabled': False,
-            'base_url': 'http://127.0.0.1:18080',
-            'api_key': 'change_me_api_key',
-            'timeout': 10
+            'enabled': True
         }
     }
 }
