@@ -62,7 +62,7 @@ export default function AppShell() {
     <div className='min-h-screen bg-background'>
       <header className='sticky top-0 z-40 border-b bg-background/90 backdrop-blur'>
         <div className='mx-auto flex h-14 max-w-7xl items-center justify-between px-4 md:px-8'>
-          <Link to='/' className='flex items-center gap-2 text-sm font-semibold tracking-wide text-primary'>
+          <Link to='/' className='flex items-center gap-1 text-sm font-semibold tracking-wide text-primary'>
             <img src='/logo.svg' alt='EmbyQ' className='h-8 w-auto' />
             {version && <span className='text-xs text-muted-foreground'>v{version}</span>}
           </Link>
@@ -83,15 +83,17 @@ export default function AppShell() {
           </nav>
           <div className='flex items-center gap-2'>
             {location.pathname.startsWith('/admin') ? (
-              <Button size='sm' variant='destructive' onClick={logout}>
-                退出
-              </Button>
+              <>
+                <Button size='sm' variant='destructive' onClick={logout}>
+                  退出
+                </Button>
+                <Link to='/admin/logs'>
+                  <Button size='icon' variant='outline' title='日志'>
+                    <FileText className='h-4 w-4' />
+                  </Button>
+                </Link>
+              </>
             ) : null}
-            <Link to='/admin/logs'>
-              <Button size='icon' variant='outline' title='日志'>
-                <FileText className='h-4 w-4' />
-              </Button>
-            </Link>
             <Button size='icon' variant='outline' onClick={toggleTheme} title='切换主题'>
               {theme === 'dark' ? <Sun className='h-4 w-4' /> : <Moon className='h-4 w-4' />}
             </Button>
