@@ -11,6 +11,7 @@ from flask_login import LoginManager, UserMixin, current_user, login_required, l
 
 from config_loader import load_config, save_config
 from location_service import LocationService
+from logger import get_logs
 
 
 class WebServer:
@@ -537,7 +538,7 @@ class WebServer:
         @login_required
         def admin_logs():
             try:
-                logs = self.db_manager.get_security_logs(limit=500)
+                logs = get_logs()
                 return jsonify({'logs': logs})
             except Exception as exc:
                 return jsonify({'error': f'获取日志失败: {exc}'}), 500

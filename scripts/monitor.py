@@ -3,10 +3,12 @@ import time
 import sqlite3
 import socket
 import re
+import logging
 from datetime import datetime
 import requests
 from webhook_notifier import WebhookNotifier
 from location_service import LocationService
+
 
 class EmbyMonitor:
     def __init__(self, db_manager, emby_client, security_client, config, location_service=None):
@@ -43,13 +45,13 @@ class EmbyMonitor:
             try:
                 from webhook_notifier import WebhookNotifier
                 self.webhook_notifier = WebhookNotifier(webhook_config)
-                print("🔔 Webhook通知已启用")
+                logging.info("🔔 Webhook通知已启用")
             except Exception as e:
-                print(f"❌ Webhook通知初始化失败: {e}")
+                logging.error(f"❌ Webhook通知初始化失败: {e}")
                 self.webhook_notifier = None
         else:
             self.webhook_notifier = None
-            print("🔕 Webhook通知未启用")
+            logging.info("🔕 Webhook通知未启用")
 
     def _extract_ip_address(self, remote_endpoint):
         """智能提取IP地址，支持IPv4和IPv6"""
@@ -186,7 +188,7 @@ class EmbyMonitor:
             self._detect_ended_sessions(current_sessions)
             self._update_session_positions(current_sessions)
         except Exception as e:
-            print(f"❌ 会话更新失败: {str(e)}")
+            logging.error(f"❌ 会话更新失败: {str(e)}")
 
     def _detect_new_sessions(self, current_sessions):
         """识别新会话"""
@@ -259,16 +261,16 @@ class EmbyMonitor:
             # 显示IP地址类型信息
             ip_type = "IPv6" if self._is_ipv6(ip_address) else "IPv4" if self._is_ipv4(ip_address) else "未知"
             if is_whitelist:
-                print(f"[▶] {username} (白名单) | 设备: {session_data['device']} | IP: {ip_address} ({ip_type}) | 位置: {location} | 内容: {session_data['media']}")
+                logging.info(f"[▶] {username} (白名单) | 设备: {session_data['device']} | IP: {ip_address} ({ip_type}) | 位置: {location} | 内容: {session_data['media']}")
             else:
-                print(f"[▶] {username} | 设备: {session_data['device']} | IP: {ip_address} ({ip_type}) | 位置: {location} | 内容: {session_data['media']}")
+                logging.info(f"[▶] {username} | 设备: {session_data['device']} | IP: {ip_address} ({ip_type}) | 位置: {location} | 内容: {session_data['media']}")
             
             # 触发异常检测
             self._check_login_abnormality(user_id, ip_address)
         except KeyError as e:
-            print(f"❌ 会话数据缺失关键字段: {str(e)}")
+            logging.error(f"❌ 会话数据缺失关键字段: {str(e)}")
         except Exception as e:
-            print(f"❌ 会话记录失败: {str(e)}")
+            logging.error(f"❌ 会话记录失败: {str(e)}")
 
     def _record_session_end(self, session_id):
         """记录会话结束"""
@@ -284,12 +286,12 @@ class EmbyMonitor:
                 duration = int((end_time - session_data['start_time']).total_seconds())
             
             self.db.record_session_end(session_id, end_time, duration)
-            print(f"[■] {session_data['username']} | 时长: {duration//60}分{duration%60}秒")
+            logging.info(f"[■] {session_data['username']} | 时长: {duration//60}分{duration%60}秒")
             del self.active_sessions[session_id]
         except KeyError:
-            print(f"⚠️ 会话 {session_id} 已不存在")
+            logging.warning(f"⚠️ 会话 {session_id} 已不存在")
         except Exception as e:
-            print(f"❌ 结束记录失败: {str(e)}")
+            logging.error(f"❌ 结束记录失败: {str(e)}")
 
     def _get_location(self, ip_address):
         """解析地理位置，使用 qoo-ip138，统一格式：位置·区·街道"""
@@ -300,7 +302,7 @@ class EmbyMonitor:
             info = self.location_service.lookup(ip_address)
             return info.get("formatted", "未知位置")
         except Exception as e:
-            print(f"📍 解析 {ip_address} 失败: {str(e)}")
+            logging.error(f"📍 解析 {ip_address} 失败: {str(e)}")
             return "解析失败"
 
     def _check_login_abnormality(self, user_id, new_ip):
@@ -332,7 +334,7 @@ class EmbyMonitor:
             
             # 最终白名单确认
             if username.lower() in self.whitelist:
-                print(f"⚪ 白名单用户 [{username}] 受保护，跳过禁用")
+                logging.info(f"⚪ 白名单用户 [{username}] 受保护，跳过禁用")
                 return
 
             location = self._get_location(trigger_ip)
@@ -354,9 +356,9 @@ class EmbyMonitor:
             可疑IP: {trigger_ip} ({ip_type}) ({location})
             并发会话数: {session_count}
             """
-            print("=" * 60)
-            print(alert_msg.strip())
-            print("=" * 60)
+            logging.info("=" * 60)
+            logging.info(alert_msg.strip())
+            logging.info("=" * 60)
             
             if self.auto_disable:
                 if self.security.disable_user(user_id, username):
@@ -376,7 +378,7 @@ class EmbyMonitor:
                         'client': client
                     })
         except Exception as e:
-            print(f"❌ 告警处理失败: {str(e)}")
+            logging.error(f"❌ 告警处理失败: {str(e)}")
 
     def _send_webhook_notification(self, user_info: dict):
         """发送Webhook通知"""
@@ -386,19 +388,19 @@ class EmbyMonitor:
         try:
             success = self.webhook_notifier.send_ban_notification(user_info)
             if success:
-                print(f"🔔 Webhook通知已发送: {user_info['username']}")
+                logging.info(f"🔔 Webhook通知已发送: {user_info['username']}")
             else:
-                print(f"⚠️ Webhook通知发送失败: {user_info['username']}")
+                logging.warning(f"⚠️ Webhook通知发送失败: {user_info['username']}")
         except Exception as e:
-            print(f"❌ Webhook通知异常: {str(e)}")
+            logging.error(f"❌ Webhook通知异常: {str(e)}")
 
     def test_webhook(self):
         """测试Webhook配置"""
         if not self.webhook_notifier:
-            print("⚠️ Webhook未启用，无法测试")
+            logging.warning("⚠️ Webhook未启用，无法测试")
             return False
         
-        print("🧪 测试Webhook配置...")
+        logging.info("🧪 测试Webhook配置...")
         return self.webhook_notifier.test_webhook()
 
     def _log_security_action(self, user_id, ip, count, username):
@@ -414,7 +416,7 @@ class EmbyMonitor:
         try:
             self.db.log_security_event(log_data)
         except Exception as e:
-            print(f"❌ 安全日志记录失败: {str(e)}")
+            logging.error(f"❌ 安全日志记录失败: {str(e)}")
 
     def _check_expired_users(self):
         """检查并封禁到期用户"""
@@ -433,7 +435,7 @@ class EmbyMonitor:
 
                     # 检查是否已在白名单
                     if username.lower() in self.whitelist:
-                        print(f"⚪ 白名单用户 [{username}] 到期但受保护，跳过禁用")
+                        logging.info(f"⚪ 白名单用户 [{username}] 到期但受保护，跳过禁用")
                         continue
 
                     # 检查用户是否已被禁用
@@ -443,7 +445,7 @@ class EmbyMonitor:
 
                     # 封禁用户
                     if self.security.disable_user(user_id, username):
-                        print(f"🔒 用户 [{username}] 账号已到期，自动封禁")
+                        logging.info(f"🔒 用户 [{username}] 账号已到期，自动封禁")
 
                         # 记录安全日志
                         log_data = {
@@ -471,14 +473,14 @@ class EmbyMonitor:
                         })
 
                 except Exception as e:
-                    print(f"❌ 处理到期用户 {user_id} 失败: {str(e)}")
+                    logging.error(f"❌ 处理到期用户 {user_id} 失败: {str(e)}")
 
         except Exception as e:
-            print(f"❌ 检查到期用户失败: {str(e)}")
+            logging.error(f"❌ 检查到期用户失败: {str(e)}")
 
     def run(self):
         """启动监控服务"""
-        print(f"🔍 监控服务启动 | 数据库: {self.config['database']['name']}")
+        logging.info(f"🔍 监控服务启动 | 数据库: {self.config['database']['name']}")
 
         # 到期用户检查计数器
         expiry_check_counter = 0
@@ -504,13 +506,11 @@ class EmbyMonitor:
                     try:
                         deleted_count = self.db.cleanup_old_ip_locations(days=30)
                         if deleted_count > 0:
-                            print(f"🧹 已清理 {deleted_count} 条30天前的IP归属地缓存记录")
+                            logging.info(f"🧹 已清理 {deleted_count} 条30天前的IP归属地缓存记录")
                     except Exception as e:
-                        print(f"❌ 清理IP归属地缓存失败: {str(e)}")
+                        logging.error(f"❌ 清理IP归属地缓存失败: {str(e)}")
                     ip_cache_cleanup_counter = 0
 
                 time.sleep(self.config['monitor']['check_interval'])
         except KeyboardInterrupt:
-            print("\n🛑 监控服务已安全停止")
-        except Exception as e:
-            print(f"❌ 监控服务异常终止: {str(e)}")
+            logging.info("\n👋 监控服务停止")

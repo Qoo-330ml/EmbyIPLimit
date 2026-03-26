@@ -11,7 +11,7 @@ export default function LogPage() {
     const loadLogs = async () => {
       try {
         const response = await apiRequest('/admin/logs')
-        setLogs(response.logs)
+        setLogs(response.logs || [])
       } catch (e) {
         console.error('加载日志失败:', e)
       } finally {
@@ -44,28 +44,20 @@ export default function LogPage() {
     <div className="mx-auto max-w-7xl p-4 pb-8 md:p-8">
       <Card>
         <CardHeader>
-          <CardTitle>安全日志</CardTitle>
+          <CardTitle>运行日志</CardTitle>
         </CardHeader>
         <CardContent>
           <div 
             ref={logContainerRef}
-            className="max-h-[600px] overflow-y-auto border rounded-md p-4 bg-muted/50"
+            className="max-h-[600px] overflow-y-auto border rounded-md p-4 bg-muted/50 font-mono text-sm"
           >
             {logs.length === 0 ? (
               <p className="text-muted-foreground text-center">暂无日志</p>
             ) : (
-              <div className="space-y-2">
-                {logs.map((log) => (
-                  <div key={log.id} className="p-2 border-b last:border-b-0">
-                    <div className="flex flex-col md:flex-row md:items-center gap-2 text-sm">
-                      <span className="text-muted-foreground w-32 md:w-48">{log.timestamp}</span>
-                      <span className="font-medium w-24 md:w-32">{log.username || log.user_id}</span>
-                      <span className="w-24 md:w-32">{log.trigger_ip}</span>
-                      <span className="w-16">{log.active_sessions} 会话</span>
-                      <span className={`w-16 font-semibold ${log.action === 'DISABLE' ? 'text-red-600' : 'text-green-600'}`}>
-                        {log.action === 'DISABLE' ? '封禁' : '启用'}
-                      </span>
-                    </div>
+              <div className="space-y-1">
+                {logs.map((log, index) => (
+                  <div key={index} className="whitespace-pre-wrap break-all">
+                    {log}
                   </div>
                 ))}
               </div>

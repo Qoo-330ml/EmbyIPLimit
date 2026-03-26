@@ -9,6 +9,7 @@ from typing import Iterable
 from config_loader import load_config
 from database import DatabaseManager
 from emby_client import EmbyClient
+from logger import setup_logging, info, warning, error
 from monitor import EmbyMonitor
 from security import EmbySecurity
 from web_server import WebServer
@@ -34,7 +35,7 @@ def _check_cli_commands(commands: Iterable[str]) -> list[str]:
 
 
 def run_startup_self_check() -> bool:
-    print("🔎 启动自检中...")
+    info("🔎 启动自检中...")
 
     errors: list[str] = []
     errors.extend(
@@ -52,16 +53,19 @@ def run_startup_self_check() -> bool:
     errors.extend(_check_cli_commands(["qoo-ip138"]))
 
     if errors:
-        print("❌ 启动自检失败：")
+        error("❌ 启动自检失败：")
         for item in errors:
-            print(f"  - {item}")
+            error(f"  - {item}")
         return False
 
-    print("✅ 启动自检通过")
+    info("✅ 启动自检通过")
     return True
 
 
 def main() -> int:
+    # 初始化日志系统
+    setup_logging()
+    
     parser = argparse.ArgumentParser(description="EmbyQ")
     parser.add_argument("--self-check", action="store_true", help="仅执行启动自检并退出")
     args = parser.parse_args()
@@ -70,7 +74,7 @@ def main() -> int:
     try:
         config = load_config()
     except Exception as exc:
-        print(f"❌ 配置加载失败: {exc}")
+        error(f"❌ 配置加载失败: {exc}")
         return 1
 
     # 每次启动都执行自检

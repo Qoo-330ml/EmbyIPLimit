@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import shutil
 import subprocess
 import time
@@ -25,7 +26,7 @@ class LocationService:
         self.geocache_enabled = self.use_hiofd
         if self.geocache_enabled:
             self.geocache_client = GeoCacheClient(emby_server_info=self.emby_server_info)
-            print(f"🌍 GeoCache 已启用")
+            logging.info("🌍 GeoCache 已启用")
 
     def update_config(self, use_hiofd: bool):
         """更新配置并清空缓存"""
@@ -35,20 +36,20 @@ class LocationService:
         new_geocache_enabled = use_hiofd
         
         if old_provider != new_provider:
-            print(f"📍 IP解析方式已切换: {old_provider} -> {new_provider}")
+            logging.info(f"📍 IP解析方式已切换: {old_provider} -> {new_provider}")
             self.use_hiofd = use_hiofd
             self.geocache_enabled = new_geocache_enabled
             
             # 更新 GeoCache 客户端
             if new_geocache_enabled and not old_geocache_enabled:
                 self.geocache_client = GeoCacheClient(emby_server_info=self.emby_server_info)
-                print(f"🌍 GeoCache 已启用")
+                logging.info("🌍 GeoCache 已启用")
             elif not new_geocache_enabled and old_geocache_enabled:
                 self.geocache_client = None
-                print(f"🌍 GeoCache 已禁用")
+                logging.info("🌍 GeoCache 已禁用")
             
             self.cache.clear()
-            print(f"📍 已清空IP解析缓存")
+            logging.info("📍 已清空IP解析缓存")
 
     def _format_location(self, location: str, district: str, street: str, isp: str) -> str:
         parts = []
@@ -170,7 +171,7 @@ class LocationService:
             except Exception as e:
                 last_err = e
                 if attempt < self.hiofd_retries:
-                    print(
+                    logging.warning(
                         f"📍 自建库 查询重试({attempt}/{self.hiofd_retries}) {ip_address}: {e}"
                     )
                     time.sleep(self.hiofd_retry_delay_sec)
@@ -201,7 +202,7 @@ class LocationService:
             if cached_info.get("provider") == current_provider:
                 return cached_info
             else:
-                print(f"📍 解析方式已切换，重新查询 {ip_address}")
+                logging.info(f"📍 解析方式已切换，重新查询 {ip_address}")
 
         info = None
         
@@ -212,7 +213,7 @@ class LocationService:
                 self.cache[ip_address] = info
                 return info
             elif db_info:
-                print(f"📍 数据库中IP归属地数据源已切换，重新查询 {ip_address}")
+                logging.info(f"📍 数据库中IP归属地数据源已切换，重新查询 {ip_address}")
 
         try:
             if self.use_hiofd:
@@ -221,7 +222,7 @@ class LocationService:
                 info = self._query_ip138(ip_address)
         except Exception as e:
             provider = "自建库" if self.use_hiofd else "ip138"
-            print(f"📍 {provider} 查询失败({ip_address}): {e}")
+            logging.error(f"📍 {provider} 查询失败({ip_address}): {e}")
             info = {
                 "provider": "none",
                 "ip": ip_address,
