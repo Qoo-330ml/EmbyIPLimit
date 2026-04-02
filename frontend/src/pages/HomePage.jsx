@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import UserIdentity from '@/components/UserIdentity'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogClose, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -484,8 +485,8 @@ function ActiveSessionCard({ session }) {
         </div>
         <div className='mt-3 border-t border-border' />
         <div className='mt-3 flex justify-between gap-2 text-xs'>
-          <span className='text-muted-foreground'>IP: {session.ip_address}</span>
-          <span className='text-primary'>{session.location}</span>
+          <span className='text-muted-foreground shrink-0'>IP: {session.ip_address}</span>
+          <span className='text-primary truncate'>{session.location}</span>
         </div>
       </CardContent>
     </Card>
@@ -497,8 +498,16 @@ export default function HomePage() {
   const [sessions, setSessions] = useState([])
   const [loading, setLoading] = useState(false)
   const [requestOpen, setRequestOpen] = useState(false)
+  const [userSearchOpen, setUserSearchOpen] = useState(false)
   const fingerprintRef = useRef('')
   const navigate = useNavigate()
+
+  const onUserSearch = (event) => {
+    event.preventDefault()
+    if (!username) return
+    setUserSearchOpen(false)
+    navigate(`/search?username=${encodeURIComponent(username)}`)
+  }
 
   useEffect(() => {
     let active = true
@@ -548,12 +557,6 @@ export default function HomePage() {
 
   const sessionCountText = useMemo(() => `当前正在播放（${sessions.length}）`, [sessions.length])
 
-  const onSearch = (event) => {
-    event.preventDefault()
-    if (!username) return
-    navigate(`/search?username=${encodeURIComponent(username)}`)
-  }
-
   return (
     <>
       <div className='mx-auto max-w-6xl space-y-6 p-4 pb-8 md:p-8'>
@@ -567,19 +570,9 @@ export default function HomePage() {
           </Button>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>按用户名查询</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form className='flex gap-2' onSubmit={onSearch}>
-              <Input placeholder='输入 Emby 用户名' value={username} onChange={(e) => setUsername(e.target.value)} />
-              <Button type='submit'>
-                <Search className='mr-2 h-4 w-4' /> 查询
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        <Button onClick={() => setUserSearchOpen(true)}>
+          <Search className='mr-2 h-4 w-4' /> 按用户名查询
+        </Button>
 
         <div className='space-y-4'>
           <div className='flex items-center justify-between'>
@@ -610,6 +603,23 @@ export default function HomePage() {
       </div>
 
       <RequestModal open={requestOpen} onClose={() => setRequestOpen(false)} />
+
+      <Dialog open={userSearchOpen} onClose={() => setUserSearchOpen(false)}>
+        <DialogClose onClose={() => setUserSearchOpen(false)} />
+        <DialogHeader>
+          <DialogTitle>按用户名查询</DialogTitle>
+          <DialogDescription>输入 Emby 用户名查询播放记录</DialogDescription>
+        </DialogHeader>
+        <form className='flex gap-2 mt-4' onSubmit={onUserSearch}>
+          <Input
+            placeholder='输入 Emby 用户名'
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            autoFocus
+          />
+          <Button type='submit'>查询</Button>
+        </form>
+      </Dialog>
     </>
   )
 }
