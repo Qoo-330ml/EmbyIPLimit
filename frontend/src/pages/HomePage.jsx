@@ -565,14 +565,16 @@ export default function HomePage() {
             <h1 className='text-2xl font-bold'>EmbyQ用户自助中心</h1>
             <p className='mt-1 text-sm text-muted-foreground'>Emby 个人播放记录查询、封禁查询，也可以直接搜索影视内容，加入公共求片清单。</p>
           </div>
+        </div>
+
+        <div className='flex gap-2'>
+          <Button onClick={() => setUserSearchOpen(true)}>
+            <Search className='mr-2 h-4 w-4' /> 用户查询
+          </Button>
           <Button onClick={() => setRequestOpen(true)}>
             <Heart className='mr-2 h-4 w-4' /> 求片
           </Button>
         </div>
-
-        <Button onClick={() => setUserSearchOpen(true)}>
-          <Search className='mr-2 h-4 w-4' /> 按用户名查询
-        </Button>
 
         <div className='space-y-4'>
           <div className='flex items-center justify-between'>
@@ -607,7 +609,7 @@ export default function HomePage() {
       <Dialog open={userSearchOpen} onClose={() => setUserSearchOpen(false)}>
         <DialogClose onClose={() => setUserSearchOpen(false)} />
         <DialogHeader>
-          <DialogTitle>按用户名查询</DialogTitle>
+          <DialogTitle>用户查询</DialogTitle>
           <DialogDescription>输入 Emby 用户名查询播放记录</DialogDescription>
         </DialogHeader>
         <form className='flex gap-2 mt-4' onSubmit={onUserSearch}>
