@@ -589,7 +589,7 @@ export default function HomePage() {
           {loading ? (
             <div className='text-center py-8 text-sm text-muted-foreground'>加载中...</div>
           ) : sessions.length > 0 ? (
-            <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
+            <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
               {sessions.map((session) => (
                 <ActiveSessionCard key={session.session_id} session={session} />
               ))}
