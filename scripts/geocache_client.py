@@ -1,8 +1,9 @@
 import base64
 import os
-import requests
 import time
 from typing import Any
+
+import requests
 
 
 def _decode(encoded: str) -> str:

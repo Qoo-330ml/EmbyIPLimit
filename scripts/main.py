@@ -11,6 +11,7 @@ from emby_client import EmbyClient
 from logger import setup_logging, info, error
 from monitor import EmbyMonitor
 from security import EmbySecurity
+from session_manager import update_proxy_config
 from tmdb_client import TMDBClient
 from web_server import WebServer
 from wish_store import WishStore
@@ -72,6 +73,7 @@ def main() -> int:
 
     try:
         config = load_config()
+        update_proxy_config(config.get('proxy', {}))
     except Exception as exc:
         error(f'❌ 配置加载失败: {exc}')
         return 1

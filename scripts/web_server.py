@@ -12,6 +12,7 @@ from flask_login import LoginManager, UserMixin, current_user, login_required, l
 from config_loader import load_config, save_config
 from location_service import LocationService
 from logger import get_logs
+from session_manager import update_proxy_config
 
 
 class WebServer:
@@ -514,6 +515,7 @@ class WebServer:
 
                 if save_config(new_config):
                     self.config = load_config()
+                    update_proxy_config(self.config.get('proxy', {}))
                     if old_use_geocache != new_use_geocache:
                         self.location_service.update_config(new_use_geocache)
                     if self.tmdb_client:

@@ -3,10 +3,12 @@ from __future__ import annotations
 import requests
 from requests import exceptions as requests_exceptions
 
+from session_manager import get_session
+
 
 class TMDBClient:
     def __init__(self, config=None):
-        self.session = requests.Session()
+        self.session = get_session()
         self.update_config(config or {})
 
     def update_config(self, config):

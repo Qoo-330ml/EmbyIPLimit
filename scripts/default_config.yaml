@@ -40,3 +40,8 @@ guest_request:
 web:
   admin_username: admin
   admin_password: admin123
+proxy:
+  enabled: false
+  http: ""
+  https: ""
+  socks5: ""

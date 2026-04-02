@@ -69,6 +69,12 @@ DEFAULT_CONFIG = {
         'admin_username': 'admin',
         'admin_password': 'admin123',
     },
+    'proxy': {
+        'enabled': False,
+        'http': '',
+        'https': '',
+        'socks5': '',
+    },
 }
 
 
