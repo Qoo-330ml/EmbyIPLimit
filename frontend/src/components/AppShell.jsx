@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { FileText, Heart, Info, Moon, Sun } from 'lucide-react'
+import { FileText, Info, Moon, Sun } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { apiRequest } from '@/types/api'
@@ -82,11 +82,6 @@ export default function AppShell() {
           <div className='flex items-center gap-2'>
             {isAdminRoute ? (
               <>
-                <Link to='/admin/wishes'>
-                  <Button size='icon' variant='outline' title='求片管理'>
-                    <Heart className='h-4 w-4' />
-                  </Button>
-                </Link>
                 <Button size='sm' variant='destructive' onClick={logout}>
                   退出
                 </Button>
