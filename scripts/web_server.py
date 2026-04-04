@@ -296,10 +296,8 @@ class WebServer:
             if not isinstance(item, dict):
                 return jsonify({'error': '请求参数错误'}), 400
 
-            submit_ip = self._get_client_ip()
-
             try:
-                record = self.wish_store.add_request(item, submit_ip=submit_ip)
+                record = self.wish_store.add_request(item)
                 message = '已加入想看清单' if record.get('created') else '该内容已在求片清单中'
                 status_code = 201 if record.get('created') else 200
                 return jsonify({'success': True, 'request': record, 'message': message}), status_code
@@ -898,21 +896,6 @@ class WebServer:
 
     def _is_guest_request_enabled(self):
         return bool(self.config.get('guest_request', {}).get('enabled', False))
-
-    def _get_client_ip(self):
-        forwarded_for = request.headers.get('X-Forwarded-For', '')
-        if forwarded_for:
-            return forwarded_for.split(',')[0].strip()
-        access_route = request.access_route or []
-        if access_route:
-            return access_route[0]
-        return request.remote_addr or ''
-
-    def _get_guest_request_daily_limit(self):
-        try:
-            return max(int(self.config.get('guest_request', {}).get('daily_limit_per_ip', 10) or 0), 0)
-        except Exception:
-            return 0
 
     def _get_all_users_with_expiry(self):
         groups_map = self._get_user_groups_map()

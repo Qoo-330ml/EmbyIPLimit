@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime
 
 
 class WishStore:
@@ -9,7 +8,7 @@ class WishStore:
     SELECT_FIELDS = '''
         id, tmdb_id, media_type, season_number, title, original_title, release_date, year,
         overview, poster_path, poster_url, backdrop_path, backdrop_url,
-        request_count, status, submit_ip, created_at, updated_at
+        status, created_at, updated_at
     '''
 
     def __init__(self, db_path):
@@ -34,55 +33,21 @@ class WishStore:
                     poster_url TEXT,
                     backdrop_path TEXT,
                     backdrop_url TEXT,
-                    request_count INTEGER DEFAULT 1,
                     status TEXT DEFAULT 'pending',
-                    submit_ip TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
                 '''
             )
-            conn.execute(
-                '''
-                CREATE TABLE IF NOT EXISTS media_request_submissions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    request_id INTEGER NOT NULL,
-                    tmdb_id INTEGER NOT NULL,
-                    media_type TEXT NOT NULL,
-                    season_number INTEGER DEFAULT 0,
-                    submit_ip TEXT,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY(request_id) REFERENCES media_requests(id) ON DELETE CASCADE
-                )
-                '''
-            )
 
             self._ensure_column(conn, 'media_requests', 'season_number', "INTEGER DEFAULT 0")
-            self._ensure_column(conn, 'media_request_submissions', 'season_number', "INTEGER DEFAULT 0")
             if self._has_legacy_unique_constraint(conn):
                 self._rebuild_media_requests_table(conn)
             self._ensure_unique_index(conn)
             conn.execute("UPDATE media_requests SET status = 'approved' WHERE status = 'fulfilled'")
             conn.commit()
 
-    def count_recent_submissions_by_ip(self, submit_ip, since_time):
-        submit_ip = (submit_ip or '').strip()
-        if not submit_ip:
-            return 0
-        since_text = self._format_datetime(since_time)
-        with sqlite3.connect(self.db_path) as conn:
-            row = conn.execute(
-                '''
-                SELECT COUNT(1)
-                FROM media_request_submissions
-                WHERE submit_ip = ? AND created_at >= ?
-                ''',
-                (submit_ip, since_text),
-            ).fetchone()
-            return int(row[0] or 0) if row else 0
-
-    def add_request(self, item, submit_ip=''):
-        submit_ip = (submit_ip or '').strip()
+    def add_request(self, item):
         tmdb_id = int(item.get('tmdb_id'))
         media_type = (item.get('media_type') or '').strip()
         if media_type not in {'movie', 'tv'}:
@@ -123,26 +88,10 @@ class WishStore:
                     conn.execute(
                         '''
                         UPDATE media_requests
-                        SET request_count = COALESCE(request_count, 0) + 1,
-                            submit_ip = ?,
-                            updated_at = CURRENT_TIMESTAMP
+                        SET updated_at = CURRENT_TIMESTAMP
                         WHERE id = ?
                         ''',
-                        (submit_ip or None, existing_record['id']),
-                    )
-                    conn.execute(
-                        '''
-                        INSERT INTO media_request_submissions (
-                            request_id, tmdb_id, media_type, season_number, submit_ip
-                        ) VALUES (?, ?, ?, ?, ?)
-                        ''',
-                        (
-                            existing_record['id'],
-                            payload['tmdb_id'],
-                            payload['media_type'],
-                            payload['season_number'],
-                            submit_ip or None,
-                        ),
+                        (existing_record['id'],),
                     )
                     conn.commit()
                     existing_record = self.get_request(existing_record['id']) or existing_record
@@ -162,9 +111,7 @@ class WishStore:
                         backdrop_path = ?,
                         backdrop_url = ?,
                         season_number = ?,
-                        request_count = COALESCE(request_count, 0) + 1,
                         status = 'pending',
-                        submit_ip = ?,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
                     ''',
@@ -179,22 +126,7 @@ class WishStore:
                         payload['backdrop_path'],
                         payload['backdrop_url'],
                         payload['season_number'],
-                        submit_ip or None,
                         existing_record['id'],
-                    ),
-                )
-                conn.execute(
-                    '''
-                    INSERT INTO media_request_submissions (
-                        request_id, tmdb_id, media_type, season_number, submit_ip
-                    ) VALUES (?, ?, ?, ?, ?)
-                    ''',
-                    (
-                        existing_record['id'],
-                        payload['tmdb_id'],
-                        payload['media_type'],
-                        payload['season_number'],
-                        submit_ip or None,
                     ),
                 )
                 conn.commit()
@@ -210,8 +142,8 @@ class WishStore:
                 INSERT INTO media_requests (
                     tmdb_id, media_type, season_number, title, original_title, release_date, year,
                     overview, poster_path, poster_url, backdrop_path, backdrop_url,
-                    request_count, status, submit_ip, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'pending', ?, CURRENT_TIMESTAMP)
+                    status, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)
                 ''',
                 (
                     payload['tmdb_id'],
@@ -226,24 +158,9 @@ class WishStore:
                     payload['poster_url'],
                     payload['backdrop_path'],
                     payload['backdrop_url'],
-                    submit_ip or None,
                 ),
             )
             request_id = int(cursor.lastrowid)
-            conn.execute(
-                '''
-                INSERT INTO media_request_submissions (
-                    request_id, tmdb_id, media_type, season_number, submit_ip
-                ) VALUES (?, ?, ?, ?, ?)
-                ''',
-                (
-                    request_id,
-                    payload['tmdb_id'],
-                    payload['media_type'],
-                    payload['season_number'],
-                    submit_ip or None,
-                ),
-            )
             conn.commit()
 
         record = self.get_request(request_id)
@@ -398,15 +315,9 @@ class WishStore:
 
     def delete_request(self, request_id):
         with sqlite3.connect(self.db_path) as conn:
-            conn.execute('DELETE FROM media_request_submissions WHERE request_id = ?', (request_id,))
             cursor = conn.execute('DELETE FROM media_requests WHERE id = ?', (request_id,))
             conn.commit()
             return cursor.rowcount > 0
-
-    def _format_datetime(self, value):
-        if isinstance(value, datetime):
-            return value.strftime('%Y-%m-%d %H:%M:%S')
-        return str(value)
 
     def _normalize_record(self, record):
         normalized = dict(record)
@@ -451,6 +362,7 @@ class WishStore:
 
     def _rebuild_media_requests_table(self, conn):
         conn.execute('DROP INDEX IF EXISTS idx_media_requests_unique_lookup')
+        conn.execute('DROP TABLE IF EXISTS media_request_submissions')
         conn.execute('ALTER TABLE media_requests RENAME TO media_requests_legacy')
         conn.execute(
             '''
@@ -468,25 +380,40 @@ class WishStore:
                 poster_url TEXT,
                 backdrop_path TEXT,
                 backdrop_url TEXT,
-                request_count INTEGER DEFAULT 1,
                 status TEXT DEFAULT 'pending',
-                submit_ip TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
             '''
         )
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(media_requests_legacy)").fetchall()}
+        has_status = 'status' in columns
+        has_created_at = 'created_at' in columns
+        has_updated_at = 'updated_at' in columns
         conn.execute(
-            '''
+            f'''
             INSERT INTO media_requests (
                 id, tmdb_id, media_type, season_number, title, original_title, release_date, year,
                 overview, poster_path, poster_url, backdrop_path, backdrop_url,
-                request_count, status, submit_ip, created_at, updated_at
+                status, created_at, updated_at
             )
             SELECT
-                id, tmdb_id, media_type, COALESCE(season_number, 0), title, original_title, release_date, year,
-                overview, poster_path, poster_url, backdrop_path, backdrop_url,
-                COALESCE(request_count, 1), status, submit_ip, created_at, updated_at
+                id,
+                tmdb_id,
+                media_type,
+                COALESCE(season_number, 0),
+                title,
+                original_title,
+                release_date,
+                year,
+                overview,
+                poster_path,
+                poster_url,
+                backdrop_path,
+                backdrop_url,
+                {"status" if has_status else "'pending'"},
+                {"created_at" if has_created_at else "CURRENT_TIMESTAMP"},
+                {"updated_at" if has_updated_at else "CURRENT_TIMESTAMP"}
             FROM media_requests_legacy
             '''
         )
