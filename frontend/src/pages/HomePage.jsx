@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Angry, CircleCheckBig, Film, Heart, Loader, LoaderCircle, Play, Search, Tv, X } from 'lucide-react'
+import { Angry, ChevronDown, CircleCheckBig, Film, Heart, Loader, LoaderCircle, Play, Search, Tv, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 import UserIdentity from '@/components/UserIdentity'
@@ -508,7 +508,7 @@ function RequestModal({ open, onClose }) {
     try {
       const data = await apiRequest(`/public/tmdb/seasons?tmdb_id=${item.tmdb_id}`)
       setSeasonDetailSeasons(data.seasons || [])
-    } catch (err) {
+    } catch {
       setSeasonDetailSeasons([])
     } finally {
       setSeasonDetailLoading(false)
