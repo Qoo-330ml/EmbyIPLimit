@@ -7,7 +7,7 @@ from datetime import datetime
 class WishStore:
     ALLOWED_STATUSES = {'pending', 'approved', 'rejected'}
     SELECT_FIELDS = '''
-        id, tmdb_id, media_type, title, original_title, release_date, year,
+        id, tmdb_id, media_type, season_number, title, original_title, release_date, year,
         overview, poster_path, poster_url, backdrop_path, backdrop_url,
         request_count, status, submit_ip, created_at, updated_at
     '''
@@ -24,6 +24,7 @@ class WishStore:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     tmdb_id INTEGER NOT NULL,
                     media_type TEXT NOT NULL,
+                    season_number INTEGER DEFAULT 0,
                     title TEXT NOT NULL,
                     original_title TEXT,
                     release_date TEXT,
@@ -37,8 +38,7 @@ class WishStore:
                     status TEXT DEFAULT 'pending',
                     submit_ip TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(tmdb_id, media_type)
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
                 '''
             )
@@ -49,12 +49,19 @@ class WishStore:
                     request_id INTEGER NOT NULL,
                     tmdb_id INTEGER NOT NULL,
                     media_type TEXT NOT NULL,
+                    season_number INTEGER DEFAULT 0,
                     submit_ip TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY(request_id) REFERENCES media_requests(id) ON DELETE CASCADE
                 )
                 '''
             )
+
+            self._ensure_column(conn, 'media_requests', 'season_number', "INTEGER DEFAULT 0")
+            self._ensure_column(conn, 'media_request_submissions', 'season_number', "INTEGER DEFAULT 0")
+            if self._has_legacy_unique_constraint(conn):
+                self._rebuild_media_requests_table(conn)
+            self._ensure_unique_index(conn)
             conn.execute("UPDATE media_requests SET status = 'approved' WHERE status = 'fulfilled'")
             conn.commit()
 
@@ -81,9 +88,12 @@ class WishStore:
         if media_type not in {'movie', 'tv'}:
             raise ValueError('媒体类型错误')
 
+        season_number = self._normalize_season_number(item.get('season_number')) if media_type == 'tv' else 0
+
         payload = {
             'tmdb_id': tmdb_id,
             'media_type': media_type,
+            'season_number': season_number,
             'title': (item.get('title') or '').strip(),
             'original_title': (item.get('original_title') or '').strip(),
             'release_date': (item.get('release_date') or '').strip(),
@@ -103,13 +113,39 @@ class WishStore:
                 f'''
                 SELECT {self.SELECT_FIELDS}
                 FROM media_requests
-                WHERE tmdb_id = ? AND media_type = ?
+                WHERE tmdb_id = ? AND media_type = ? AND season_number = ?
                 ''',
-                (payload['tmdb_id'], payload['media_type']),
+                (payload['tmdb_id'], payload['media_type'], payload['season_number']),
             ).fetchone()
             if existing:
-                existing_record = dict(existing)
+                existing_record = self._normalize_record(dict(existing))
                 if existing_record.get('status') != 'rejected':
+                    conn.execute(
+                        '''
+                        UPDATE media_requests
+                        SET request_count = COALESCE(request_count, 0) + 1,
+                            submit_ip = ?,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = ?
+                        ''',
+                        (submit_ip or None, existing_record['id']),
+                    )
+                    conn.execute(
+                        '''
+                        INSERT INTO media_request_submissions (
+                            request_id, tmdb_id, media_type, season_number, submit_ip
+                        ) VALUES (?, ?, ?, ?, ?)
+                        ''',
+                        (
+                            existing_record['id'],
+                            payload['tmdb_id'],
+                            payload['media_type'],
+                            payload['season_number'],
+                            submit_ip or None,
+                        ),
+                    )
+                    conn.commit()
+                    existing_record = self.get_request(existing_record['id']) or existing_record
                     existing_record['created'] = False
                     return existing_record
 
@@ -125,6 +161,8 @@ class WishStore:
                         poster_url = ?,
                         backdrop_path = ?,
                         backdrop_url = ?,
+                        season_number = ?,
+                        request_count = COALESCE(request_count, 0) + 1,
                         status = 'pending',
                         submit_ip = ?,
                         updated_at = CURRENT_TIMESTAMP
@@ -140,6 +178,7 @@ class WishStore:
                         payload['poster_url'],
                         payload['backdrop_path'],
                         payload['backdrop_url'],
+                        payload['season_number'],
                         submit_ip or None,
                         existing_record['id'],
                     ),
@@ -147,10 +186,16 @@ class WishStore:
                 conn.execute(
                     '''
                     INSERT INTO media_request_submissions (
-                        request_id, tmdb_id, media_type, submit_ip
-                    ) VALUES (?, ?, ?, ?)
+                        request_id, tmdb_id, media_type, season_number, submit_ip
+                    ) VALUES (?, ?, ?, ?, ?)
                     ''',
-                    (existing_record['id'], payload['tmdb_id'], payload['media_type'], submit_ip or None),
+                    (
+                        existing_record['id'],
+                        payload['tmdb_id'],
+                        payload['media_type'],
+                        payload['season_number'],
+                        submit_ip or None,
+                    ),
                 )
                 conn.commit()
 
@@ -163,14 +208,15 @@ class WishStore:
             cursor = conn.execute(
                 '''
                 INSERT INTO media_requests (
-                    tmdb_id, media_type, title, original_title, release_date, year,
+                    tmdb_id, media_type, season_number, title, original_title, release_date, year,
                     overview, poster_path, poster_url, backdrop_path, backdrop_url,
                     request_count, status, submit_ip, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'pending', ?, CURRENT_TIMESTAMP)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'pending', ?, CURRENT_TIMESTAMP)
                 ''',
                 (
                     payload['tmdb_id'],
                     payload['media_type'],
+                    payload['season_number'],
                     payload['title'],
                     payload['original_title'],
                     payload['release_date'],
@@ -187,10 +233,16 @@ class WishStore:
             conn.execute(
                 '''
                 INSERT INTO media_request_submissions (
-                    request_id, tmdb_id, media_type, submit_ip
-                ) VALUES (?, ?, ?, ?)
+                    request_id, tmdb_id, media_type, season_number, submit_ip
+                ) VALUES (?, ?, ?, ?, ?)
                 ''',
-                (request_id, payload['tmdb_id'], payload['media_type'], submit_ip or None),
+                (
+                    request_id,
+                    payload['tmdb_id'],
+                    payload['media_type'],
+                    payload['season_number'],
+                    submit_ip or None,
+                ),
             )
             conn.commit()
 
@@ -213,7 +265,7 @@ class WishStore:
             ).fetchone()
             if not row:
                 return None
-            return dict(row)
+            return self._normalize_record(dict(row))
 
     def list_requests(self, status=''):
         with sqlite3.connect(self.db_path) as conn:
@@ -236,7 +288,7 @@ class WishStore:
                     ORDER BY updated_at DESC, created_at DESC
                     '''
                 ).fetchall()
-            return [dict(row) for row in rows]
+            return [self._normalize_record(dict(row)) for row in rows]
 
     def list_public_requests(self, page=1, page_size=25):
         try:
@@ -273,7 +325,7 @@ class WishStore:
         total_pages = ((total_results - 1) // page_size) + 1 if total_results else 1
         requests = []
         for row in rows:
-            record = dict(row)
+            record = self._normalize_record(dict(row))
             record['requested'] = True
             record['request_status'] = record.get('status')
             requests.append(record)
@@ -301,28 +353,29 @@ class WishStore:
                 media_type = (item.get('media_type') or '').strip()
                 if media_type not in {'movie', 'tv'}:
                     continue
+                season_number = self._normalize_season_number(item.get('season_number')) if media_type == 'tv' else 0
 
                 if include_rejected:
                     row = conn.execute(
                         f'''
                         SELECT {self.SELECT_FIELDS}
                         FROM media_requests
-                        WHERE tmdb_id = ? AND media_type = ?
+                        WHERE tmdb_id = ? AND media_type = ? AND season_number = ?
                         ''',
-                        (tmdb_id, media_type),
+                        (tmdb_id, media_type, season_number),
                     ).fetchone()
                 else:
                     row = conn.execute(
                         f'''
                         SELECT {self.SELECT_FIELDS}
                         FROM media_requests
-                        WHERE tmdb_id = ? AND media_type = ? AND status != 'rejected'
+                        WHERE tmdb_id = ? AND media_type = ? AND season_number = ? AND status != 'rejected'
                         ''',
-                        (tmdb_id, media_type),
+                        (tmdb_id, media_type, season_number),
                     ).fetchone()
 
                 if row:
-                    mapping[f'{media_type}:{tmdb_id}'] = dict(row)
+                    mapping[self._make_lookup_key(media_type, tmdb_id, season_number)] = self._normalize_record(dict(row))
         return mapping
 
     def update_request_status(self, request_id, status):
@@ -354,3 +407,95 @@ class WishStore:
         if isinstance(value, datetime):
             return value.strftime('%Y-%m-%d %H:%M:%S')
         return str(value)
+
+    def _normalize_record(self, record):
+        normalized = dict(record)
+        normalized['season_number'] = self._normalize_season_number(normalized.get('season_number')) if normalized.get('media_type') == 'tv' else 0
+        normalized['lookup_key'] = self._make_lookup_key(
+            normalized.get('media_type'),
+            normalized.get('tmdb_id'),
+            normalized.get('season_number'),
+        )
+        normalized['is_season_request'] = bool(normalized.get('media_type') == 'tv' and normalized.get('season_number', 0) > 0)
+        return normalized
+
+    def _make_lookup_key(self, media_type, tmdb_id, season_number=0):
+        media_type = (media_type or '').strip()
+        season_number = self._normalize_season_number(season_number) if media_type == 'tv' else 0
+        return f'{media_type}:{tmdb_id}:{season_number}'
+
+    def _normalize_season_number(self, season_number):
+        try:
+            return max(int(season_number or 0), 0)
+        except Exception:
+            return 0
+
+    def _ensure_column(self, conn, table_name, column_name, definition):
+        columns = {row[1] for row in conn.execute(f'PRAGMA table_info({table_name})').fetchall()}
+        if column_name not in columns:
+            conn.execute(f'ALTER TABLE {table_name} ADD COLUMN {column_name} {definition}')
+
+    def _has_legacy_unique_constraint(self, conn):
+        indexes = conn.execute("PRAGMA index_list('media_requests')").fetchall()
+        for index in indexes:
+            name = index[1]
+            unique = int(index[2])
+            origin = index[3] if len(index) > 3 else ''
+            if not unique:
+                continue
+            index_info = conn.execute(f"PRAGMA index_info('{name}')").fetchall()
+            columns = [row[2] for row in index_info]
+            if columns == ['tmdb_id', 'media_type'] and origin in {'u', 'pk'}:
+                return True
+        return False
+
+    def _rebuild_media_requests_table(self, conn):
+        conn.execute('DROP INDEX IF EXISTS idx_media_requests_unique_lookup')
+        conn.execute('ALTER TABLE media_requests RENAME TO media_requests_legacy')
+        conn.execute(
+            '''
+            CREATE TABLE media_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tmdb_id INTEGER NOT NULL,
+                media_type TEXT NOT NULL,
+                season_number INTEGER DEFAULT 0,
+                title TEXT NOT NULL,
+                original_title TEXT,
+                release_date TEXT,
+                year TEXT,
+                overview TEXT,
+                poster_path TEXT,
+                poster_url TEXT,
+                backdrop_path TEXT,
+                backdrop_url TEXT,
+                request_count INTEGER DEFAULT 1,
+                status TEXT DEFAULT 'pending',
+                submit_ip TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+            '''
+        )
+        conn.execute(
+            '''
+            INSERT INTO media_requests (
+                id, tmdb_id, media_type, season_number, title, original_title, release_date, year,
+                overview, poster_path, poster_url, backdrop_path, backdrop_url,
+                request_count, status, submit_ip, created_at, updated_at
+            )
+            SELECT
+                id, tmdb_id, media_type, COALESCE(season_number, 0), title, original_title, release_date, year,
+                overview, poster_path, poster_url, backdrop_path, backdrop_url,
+                COALESCE(request_count, 1), status, submit_ip, created_at, updated_at
+            FROM media_requests_legacy
+            '''
+        )
+        conn.execute('DROP TABLE media_requests_legacy')
+
+    def _ensure_unique_index(self, conn):
+        conn.execute(
+            '''
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_media_requests_unique_lookup
+            ON media_requests (tmdb_id, media_type, season_number)
+            '''
+        )

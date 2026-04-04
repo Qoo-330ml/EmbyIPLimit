@@ -171,7 +171,15 @@ class WebServer:
                 if self.wish_store and results:
                     request_map = self.wish_store.get_request_map(results)
                     for item in results:
-                        lookup_key = f"{item.get('media_type')}:{item.get('tmdb_id')}"
+                        season_number = 0
+                        if item.get('media_type') == 'tv':
+                            try:
+                                season_number = max(int(item.get('season_number') or 0), 0)
+                            except Exception:
+                                season_number = 0
+                        lookup_key = f"{item.get('media_type')}:{item.get('tmdb_id')}:{season_number}"
+                        item['lookup_key'] = lookup_key
+                        item['season_number'] = season_number
                         request_record = request_map.get(lookup_key)
                         item['requested'] = bool(request_record)
                         if request_record:
@@ -227,12 +235,30 @@ class WebServer:
                 if self.shadow_library:
                     shadow_seasons = self.shadow_library.get_series_seasons_by_tmdb(tmdb_id_int)
                 shadow_season_numbers = {s.get('season_number') for s in shadow_seasons}
+                request_map = {}
+                if self.wish_store and tmdb_seasons:
+                    request_map = self.wish_store.get_request_map(
+                        [
+                            {
+                                'tmdb_id': tmdb_id_int,
+                                'media_type': 'tv',
+                                'season_number': season.get('season_number'),
+                            }
+                            for season in tmdb_seasons
+                        ]
+                    )
                 result_seasons = []
                 for season in tmdb_seasons:
                     sn = season.get('season_number')
                     in_library = sn in shadow_season_numbers
+                    lookup_key = f"tv:{tmdb_id_int}:{max(int(sn or 0), 0)}"
+                    request_record = request_map.get(lookup_key)
                     result_seasons.append({
                         **season,
+                        'lookup_key': lookup_key,
+                        'requested': bool(request_record),
+                        'request_id': request_record.get('id') if request_record else None,
+                        'request_status': request_record.get('status') if request_record else '',
                         'in_library': in_library,
                     })
                 return jsonify({

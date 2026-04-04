@@ -18,8 +18,13 @@ const REQUEST_STATUS_LABELS = {
 }
 
 function normalizeWishItem(item) {
+  const seasonNumber = item.media_type === 'tv' ? Number(item.season_number || 0) : 0
+  const lookupKey = item.lookup_key || `${item.media_type}:${item.tmdb_id}:${seasonNumber}`
   return {
     ...item,
+    season_number: seasonNumber,
+    lookup_key: lookupKey,
+    is_season_request: item.media_type === 'tv' && seasonNumber > 0,
     requested: true,
     request_status: item.request_status || item.status || 'pending',
   }
@@ -28,6 +33,15 @@ function normalizeWishItem(item) {
 function SeasonDetailModal({ open, onClose, item, loading, seasons, librarySeasonCount, onSubmitSeason }) {
   const [submittingSeason, setSubmittingSeason] = useState(null)
   const [wishListSeasons, setWishListSeasons] = useState(new Set())
+
+  useEffect(() => {
+    const next = new Set(
+      (seasons || [])
+        .filter((season) => season.requested || season.request_id || season.request_status)
+        .map((season) => season.season_number)
+    )
+    setWishListSeasons(next)
+  }, [seasons, open])
 
   const handleSubmitSeason = async (season) => {
     setSubmittingSeason(season.season_number)
@@ -95,6 +109,8 @@ function SeasonDetailModal({ open, onClose, item, loading, seasons, librarySeaso
                   <div className='flex items-center gap-2'>
                     {season.in_library ? (
                       <Badge className='bg-green-500 text-white'>已入库</Badge>
+                    ) : season.request_status === 'approved' ? (
+                      <Badge className='bg-teal-500 text-white'>已采纳</Badge>
                     ) : inWishList ? (
                       <Badge className='bg-yellow-500 text-black'>已在清单中</Badge>
                     ) : (
@@ -125,8 +141,9 @@ function SeasonDetailModal({ open, onClose, item, loading, seasons, librarySeaso
 }
 
 function WishPosterCard({ item, submittingId, onSubmit, onShowSeasonDetail }) {
-  const key = `${item.media_type}-${item.tmdb_id}`
-  const isSubmitting = submittingId === key
+  const seasonNumber = item.media_type === 'tv' ? Number(item.season_number || 0) : 0
+  const lookupKey = item.lookup_key || `${item.media_type}:${item.tmdb_id}:${seasonNumber}`
+  const isSubmitting = submittingId === lookupKey
   const titleText = item.title || item.original_title || '未命名内容'
   const itemStatus = item.request_status || item.status
   const isRequested = Boolean(item.requested || item.request_id || item.id)
@@ -213,7 +230,9 @@ function WishPosterCard({ item, submittingId, onSubmit, onShowSeasonDetail }) {
             </div>
           </div>
           <div className='flex items-center justify-between gap-1 text-[11px] text-muted-foreground'>
-            <span className='truncate'>{item.year || item.release_date || '未知年份'}</span>
+            <span className='truncate'>
+              {item.is_season_request ? `第 ${seasonNumber} 季` : item.year || item.release_date || '未知年份'}
+            </span>
             <Badge variant='outline' className='h-5 shrink-0 px-1.5 text-[10px]'>
               {item.media_type === 'movie' ? (
                 <span className='inline-flex items-center gap-1'>
@@ -516,7 +535,8 @@ function RequestModal({ open, onClose }) {
   }
 
   const submitSeasonWish = async (season, parentItem) => {
-    const submitKey = `season-${parentItem.tmdb_id}-${season.season_number}`
+    const seasonNumber = Number(season.season_number || 0)
+    const submitKey = season.lookup_key || `tv:${parentItem.tmdb_id}:${seasonNumber}`
     setSubmittingId(submitKey)
     setError('')
     setNotice('')
@@ -524,6 +544,7 @@ function RequestModal({ open, onClose }) {
       const item = {
         tmdb_id: parentItem.tmdb_id,
         media_type: 'tv',
+        season_number: seasonNumber,
         title: `${parentItem.title} - ${season.name}`,
         original_title: parentItem.original_title,
         release_date: season.air_date,
@@ -538,7 +559,35 @@ function RequestModal({ open, onClose }) {
         method: 'POST',
         body: JSON.stringify({ item }),
       })
+      const requestRecord = data.request ? normalizeWishItem(data.request) : null
       setNotice(data.message || `${season.name} 已加入想看清单`)
+      if (requestRecord) {
+        setSeasonDetailSeasons((prev) =>
+          prev.map((current) =>
+            Number(current.season_number || 0) === seasonNumber
+              ? {
+                  ...current,
+                  requested: true,
+                  request_id: requestRecord.id,
+                  request_status: requestRecord.status || 'pending',
+                  lookup_key: requestRecord.lookup_key || current.lookup_key,
+                }
+              : current
+          )
+        )
+        if (wishListOpen) {
+          setWishList((prev) => {
+            const exists = prev.some((current) => current.lookup_key === requestRecord.lookup_key)
+            if (exists) {
+              return prev.map((current) => (current.lookup_key === requestRecord.lookup_key ? { ...current, ...requestRecord } : current))
+            }
+            return [requestRecord, ...prev]
+          })
+          if (data.request?.created) {
+            setWishTotalResults((prev) => prev + 1)
+          }
+        }
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -547,7 +596,8 @@ function RequestModal({ open, onClose }) {
   }
 
   const submitWish = async (item) => {
-    const submitKey = `${item.media_type}-${item.tmdb_id}`
+    const seasonNumber = item.media_type === 'tv' ? Number(item.season_number || 0) : 0
+    const submitKey = item.lookup_key || `${item.media_type}:${item.tmdb_id}:${seasonNumber}`
     setSubmittingId(submitKey)
     setError('')
     setNotice('')
@@ -561,12 +611,14 @@ function RequestModal({ open, onClose }) {
       setNotice(data.message || '已加入想看清单')
       setResults((prev) =>
         prev.map((current) =>
-          current.tmdb_id === item.tmdb_id && current.media_type === item.media_type
+          (current.lookup_key || `${current.media_type}:${current.tmdb_id}:${Number(current.season_number || 0)}`) === requestRecord?.lookup_key
             ? {
                 ...current,
                 requested: true,
                 request_id: data.request?.id,
                 request_status: data.request?.status || 'pending',
+                lookup_key: requestRecord?.lookup_key || current.lookup_key,
+                season_number: requestRecord?.season_number ?? current.season_number,
               }
             : current
         )
@@ -574,10 +626,10 @@ function RequestModal({ open, onClose }) {
 
       if (requestRecord && wishListOpen) {
         setWishList((prev) => {
-          const exists = prev.some((current) => current.tmdb_id === requestRecord.tmdb_id && current.media_type === requestRecord.media_type)
+          const exists = prev.some((current) => current.lookup_key === requestRecord.lookup_key)
           if (exists) {
             return prev.map((current) =>
-              current.tmdb_id === requestRecord.tmdb_id && current.media_type === requestRecord.media_type
+              current.lookup_key === requestRecord.lookup_key
                 ? { ...current, ...requestRecord }
                 : current
             )
