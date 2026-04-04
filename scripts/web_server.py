@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import threading
 from datetime import datetime, timedelta
@@ -13,6 +14,8 @@ from config_loader import load_config, save_config
 from location_service import LocationService
 from logger import get_logs
 from session_manager import update_proxy_config
+
+logger = logging.getLogger(__name__)
 
 
 class WebServer:
@@ -98,13 +101,16 @@ class WebServer:
 
             if username == admin_username and password == admin_password:
                 login_user(AdminUser())
+                logger.info('管理员登录成功: username=%s', admin_username)
                 return jsonify({'success': True, 'user': {'username': admin_username}})
 
+            logger.warning('管理员登录失败: username=%s', username)
             return jsonify({'error': '用户名或密码错误'}), 401
 
         @self.app.post('/api/auth/logout')
         @login_required
         def api_logout():
+            logger.info('管理员退出登录')
             logout_user()
             return jsonify({'success': True})
 
@@ -129,8 +135,10 @@ class WebServer:
             if not username:
                 return jsonify({'error': '请输入用户名'}), 400
 
+            logger.info('公开搜索用户: username=%s', username)
             user_id = self._get_user_id_by_username(username)
             if not user_id:
+                logger.warning('公开搜索未找到用户: username=%s', username)
                 return jsonify({'error': f'未找到用户名为 {username} 的用户'}), 404
 
             playback_records = self._serialize_playback_records(
@@ -164,6 +172,7 @@ class WebServer:
             if not query:
                 return jsonify({'error': '请输入搜索关键词'}), 400
 
+            logger.info('公开 TMDB 搜索: query=%s, page=%s', query, request.args.get('page', 1))
             try:
                 page = request.args.get('page', 1)
                 search_payload = self.tmdb_client.search_multi(query, page=page)
@@ -208,8 +217,10 @@ class WebServer:
                                 item['tmdb_season_count'] = 0
                 return jsonify(search_payload)
             except RuntimeError as exc:
+                logger.warning('TMDB 搜索运行时失败: query=%s, error=%s', query, exc)
                 return jsonify({'error': str(exc)}), 503
             except Exception as exc:
+                logger.exception('TMDB 搜索失败: query=%s, error=%s', query, exc)
                 return jsonify({'error': f'TMDB 搜索失败: {exc}'}), 500
 
         @self.app.get('/api/public/tmdb/seasons')
@@ -222,6 +233,8 @@ class WebServer:
             tmdb_id = request.args.get('tmdb_id')
             if not tmdb_id:
                 return jsonify({'error': '缺少 tmdb_id 参数'}), 400
+
+            logger.info('公开 TMDB 季详情查询: tmdb_id=%s', tmdb_id)
 
             try:
                 tmdb_id_int = int(tmdb_id)
@@ -296,14 +309,32 @@ class WebServer:
             if not isinstance(item, dict):
                 return jsonify({'error': '请求参数错误'}), 400
 
+            logger.info(
+                '公开提交求片: title=%s, media_type=%s, tmdb_id=%s, season_number=%s',
+                item.get('title'),
+                item.get('media_type'),
+                item.get('tmdb_id'),
+                item.get('season_number'),
+            )
             try:
                 record = self.wish_store.add_request(item)
                 message = '已加入想看清单' if record.get('created') else '该内容已在求片清单中'
                 status_code = 201 if record.get('created') else 200
+                logger.info(
+                    '公开提交求片完成: title=%s, media_type=%s, tmdb_id=%s, season_number=%s, created=%s, request_id=%s',
+                    item.get('title'),
+                    item.get('media_type'),
+                    item.get('tmdb_id'),
+                    item.get('season_number'),
+                    record.get('created'),
+                    record.get('id'),
+                )
                 return jsonify({'success': True, 'request': record, 'message': message}), status_code
             except ValueError as exc:
+                logger.warning('公开提交求片参数错误: item=%s, error=%s', item, exc)
                 return jsonify({'error': str(exc)}), 400
             except Exception as exc:
+                logger.exception('公开提交求片失败: item=%s, error=%s', item, exc)
                 return jsonify({'error': f'保存求片失败: {exc}'}), 500
 
         @self.app.get('/api/public/invite/<code>')
@@ -583,10 +614,13 @@ class WebServer:
         def admin_shadow_sync():
             if not self.shadow_syncer:
                 return jsonify({'error': '影子库同步器未初始化'}), 503
+            logger.warning('管理员触发影子库同步')
             try:
                 result = self.shadow_syncer.sync_all()
+                logger.warning('影子库同步完成: result=%s', result)
                 return jsonify({'success': True, 'result': result})
             except Exception as exc:
+                logger.exception('影子库同步失败: error=%s', exc)
                 return jsonify({'error': f'同步失败: {exc}'}), 500
 
         @self.app.get('/api/admin/shadow/movies')
@@ -809,7 +843,7 @@ class WebServer:
         self.running = True
         self.server_thread = threading.Thread(target=run_server, daemon=True)
         self.server_thread.start()
-        print('Web服务器已启动，访问地址: http://localhost:5000')
+        logger.info('Web服务器已启动: url=http://localhost:5000')
 
     def _get_all_active_sessions(self):
         active_sessions = getattr(self.monitor, 'active_sessions', {}) if self.monitor else {}

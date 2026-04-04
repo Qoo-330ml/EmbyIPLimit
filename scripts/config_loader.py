@@ -1,8 +1,11 @@
 import copy
+import logging
 import os
 import shutil
 
 import yaml
+
+logger = logging.getLogger(__name__)
 
 
 def get_base_dir():
@@ -88,13 +91,13 @@ def load_config():
 
     default_config_path = os.path.join(scripts_dir, 'default_config.yaml')
     if not os.path.exists(default_config_path):
-        print('❌ default_config.yaml文件不存在')
-        exit(1)
+        logger.error('default_config.yaml 文件不存在: %s', default_config_path)
+        raise SystemExit(1)
 
     config_file = os.path.join(data_dir, 'config.yaml')
     if not os.path.exists(config_file):
         shutil.copy2(default_config_path, config_file)
-        print(f'📄 配置文件已生成于: {config_file}，请填写必要项后重启容器')
+        logger.warning('配置文件不存在，已从模板生成: %s', config_file)
 
     with open(config_file, 'r', encoding='utf-8') as f:
         user_config = yaml.safe_load(f) or {}
@@ -128,10 +131,16 @@ def load_config():
             missing.append(f'{section}.{field}')
 
     if missing:
-        print('❌ 缺失必要配置项：')
-        for item in missing:
-            print(f'  - {item}')
-        exit(1)
+        logger.error('缺失必要配置项: %s', ', '.join(missing))
+        raise SystemExit(1)
+
+    logger.info(
+        '配置加载完成: emby=%s, tmdb_enabled=%s, guest_request_enabled=%s, shadow_library_enabled=%s',
+        config.get('emby', {}).get('server_url', ''),
+        config.get('tmdb', {}).get('enabled', False),
+        config.get('guest_request', {}).get('enabled', False),
+        config.get('shadow_library', {}).get('enabled', False),
+    )
 
     return config
 
@@ -143,9 +152,10 @@ def save_config(config):
     try:
         with open(config_file, 'w', encoding='utf-8') as f:
             yaml.dump(config, f, default_flow_style=False, allow_unicode=True, indent=2, sort_keys=False)
+        logger.info('配置文件保存成功: %s', config_file)
         return True
     except Exception as e:
-        print(f'保存配置文件失败: {e}')
+        logger.exception('保存配置文件失败: %s', e)
         return False
 
 
@@ -160,5 +170,5 @@ def get_raw_config():
         with open(config_file, 'r', encoding='utf-8') as f:
             return f.read()
     except Exception as e:
-        print(f'读取配置文件失败: {e}')
+        logger.exception('读取配置文件失败: %s', e)
         return ''

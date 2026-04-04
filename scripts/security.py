@@ -1,3 +1,8 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 class EmbySecurity:
     def __init__(self, emby_client):
         self.emby_client = emby_client
@@ -5,10 +10,10 @@ class EmbySecurity:
 
     def disable_user(self, user_id, username=None):
         """显示用户名的禁用方法"""
+        display_name = username or user_id
         try:
             policy_url = f"{self.emby_client.server_url}/emby/Users/{user_id}/Policy"
-            display_name = username or user_id
-            print(f"🛡 正在禁用用户 [{display_name}] (ID: {user_id})")
+            logger.warning('准备禁用用户: username=%s, user_id=%s', display_name, user_id)
 
             response = self.session.post(
                 policy_url,
@@ -16,22 +21,22 @@ class EmbySecurity:
             )
 
             if response.status_code in (200, 204):
-                print(f"✅ 用户 [{display_name}] 已成功禁用")
+                logger.warning('用户已禁用: username=%s, user_id=%s', display_name, user_id)
                 return True
 
-            print(f"❌ 禁用失败: HTTP {response.status_code}")
+            logger.error('禁用用户失败: username=%s, user_id=%s, status_code=%s', display_name, user_id, response.status_code)
             return False
 
         except Exception as e:
-            print(f"❌ 禁用用户 [{display_name}] 时发生错误: {str(e)}")
+            logger.exception('禁用用户异常: username=%s, user_id=%s, error=%s', display_name, user_id, e)
             return False
 
     def enable_user(self, user_id, username=None):
         """启用用户（带用户名显示）"""
+        display_name = username or user_id
         try:
             policy_url = f"{self.emby_client.server_url}/emby/Users/{user_id}/Policy"
-            display_name = username or user_id
-            print(f"🛡 正在启用用户 [{display_name}]")
+            logger.info('准备启用用户: username=%s, user_id=%s', display_name, user_id)
 
             response = self.session.post(
                 policy_url,
@@ -39,10 +44,11 @@ class EmbySecurity:
             )
 
             if response.status_code in (200, 204):
-                print(f"✅ 用户 [{display_name}] 已启用")
+                logger.info('用户已启用: username=%s, user_id=%s', display_name, user_id)
                 return True
 
+            logger.error('启用用户失败: username=%s, user_id=%s, status_code=%s', display_name, user_id, response.status_code)
             return False
         except Exception as e:
-            print(f"❌ 启用用户失败: {str(e)}")
+            logger.exception('启用用户异常: username=%s, user_id=%s, error=%s', display_name, user_id, e)
             return False

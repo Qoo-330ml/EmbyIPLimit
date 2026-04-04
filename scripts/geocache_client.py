@@ -1,9 +1,12 @@
 import base64
+import logging
 import os
 import time
 from typing import Any
 
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 def _decode(encoded: str) -> str:
@@ -110,7 +113,7 @@ class GeoCacheClient:
             response.raise_for_status()
             return True
         except requests.exceptions.RequestException as e:
-            print(f"🌍 GeoCache 提交失败 ({ip}): {e}")
+            logger.warning('GeoCache 提交失败: ip=%s, error=%s', ip, e)
             return False
 
     def report_location_info(self, location_info: dict[str, Any]) -> bool:
@@ -164,6 +167,7 @@ class GeoCacheClient:
             data = response.json()
 
             if data.get("found"):
+                logger.debug('GeoCache 查询命中: ip=%s, location=%s', ip, data.get('location'))
                 return {
                     "provider": "geocache",
                     "ip": data.get("ip"),
@@ -176,9 +180,10 @@ class GeoCacheClient:
                     "formatted": "",  # GeoCache 不提供格式化信息，由调用方处理
                     "ts": int(time.time())
                 }
+            logger.debug('GeoCache 查询未命中: ip=%s', ip)
             return None
         except requests.exceptions.RequestException as e:
-            print(f"🌍 GeoCache 查询失败 ({ip}): {e}")
+            logger.warning('GeoCache 查询失败: ip=%s, error=%s', ip, e)
             return None
 
     def health_check(self) -> bool:
