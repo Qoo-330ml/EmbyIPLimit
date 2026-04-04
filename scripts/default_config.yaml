@@ -14,10 +14,12 @@ notifications:
   alert_threshold: 2
   enable_alerts: true
 security:
+  auto_disable: true
   whitelist:
     - admin
     - user1
     - user2
+  ipv6_prefix_length: 64
 webhook:
   enabled: false
   url:

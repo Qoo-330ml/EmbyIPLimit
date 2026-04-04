@@ -37,7 +37,9 @@ DEFAULT_CONFIG = {
         'alert_threshold': 2,
     },
     'security': {
+        'auto_disable': True,
         'whitelist': ['admin', 'user1', 'user2'],
+        'ipv6_prefix_length': 64,
     },
     'webhook': {
         'enabled': False,
