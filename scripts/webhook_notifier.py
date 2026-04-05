@@ -160,16 +160,21 @@ class WebhookNotifier:
         )
 
     def _render_structured_body(self, event_type, payload):
+        normalized_payload = self._apply_event_template(event_type, payload)
         body = self.config.get('body')
         if isinstance(body, dict) and body:
-            rendered = self._render_object(body, event_type, payload)
+            rendered = self._render_object(body, event_type, normalized_payload)
             if isinstance(rendered, dict):
+                rendered.setdefault('title', normalized_payload.get('title', ''))
+                rendered.setdefault('content', normalized_payload.get('content', ''))
                 rendered.setdefault('event_type', event_type)
-                rendered.setdefault('payload', payload)
+                rendered.setdefault('payload', normalized_payload)
             return rendered
         return {
+            'title': normalized_payload.get('title', ''),
+            'content': normalized_payload.get('content', ''),
             'event_type': event_type,
-            'payload': payload,
+            'payload': normalized_payload,
         }
 
     def _render_text_body(self, event_type, payload):
@@ -209,15 +214,64 @@ class WebhookNotifier:
 
     def _normalize_user_payload(self, user_info):
         payload = dict(user_info or {})
-        payload.setdefault('title', 'Emby用户封禁通知')
-        payload.setdefault(
-            'content',
-            '用户 {username} 在 {location} 使用 {ip_address} ({ip_type}) 登录，检测到 {session_count} 个并发会话，已自动封禁。',
-        )
-        payload['content'] = self._render_string(payload.get('content') or '', 'user_disabled', payload)
-        payload['title'] = self._render_string(payload.get('title') or '', 'user_disabled', payload)
         payload.setdefault('timestamp', self._now_str())
-        return payload
+        return self._apply_event_template('user_disabled', payload)
+
+    def _apply_event_template(self, event_type, payload):
+        normalized = dict(payload or {})
+        normalized.setdefault('timestamp', self._now_str())
+        normalized.setdefault('season_suffix', self._build_season_suffix(normalized.get('season_number')))
+
+        title_template, content_template = self._get_event_templates(event_type)
+        original_title = normalized.get('title')
+        if title_template:
+            normalized['title'] = self._render_string(title_template, event_type, normalized)
+        if original_title is not None:
+            normalized.setdefault('item_title', str(original_title))
+            normalized['source_title'] = str(original_title)
+            if event_type == 'guest_request_created':
+                normalized['request_title'] = str(original_title)
+                normalized['title'] = self._render_string(title_template, event_type, normalized)
+        if content_template:
+            normalized['content'] = self._render_string(normalized.get('content') or content_template, event_type, normalized)
+
+        return normalized
+
+    def _get_event_templates(self, event_type):
+        templates = {
+            'user_disabled': (
+                'EmbyQ 通知 · 账号封禁',
+                '用户 {username} 在 {location} 使用 {ip_address} ({ip_type}) 登录，检测到 {session_count} 个并发会话，已自动封禁。',
+            ),
+            'guest_request_created': (
+                'EmbyQ 通知 · 游客求片',
+                '收到新的求片：{request_title}{season_suffix}（TMDB: {tmdb_id}）。',
+            ),
+            'invite_registered': (
+                'EmbyQ 通知 · 邀请注册成功',
+                '用户 {username} 已通过邀请码完成注册，用户 ID：{user_id}。',
+            ),
+            'shadow_sync_completed': (
+                'EmbyQ 通知 · 影子库同步完成',
+                '影子库同步完成：电影新增 {movies_synced} 部，失败 {movies_failed} 部；剧集新增 {series_synced} 部，失败 {series_failed} 部。',
+            ),
+            'shadow_sync_failed': (
+                'EmbyQ 通知 · 影子库同步失败',
+                '影子库同步失败：{error}',
+            ),
+            'test': (
+                'EmbyQ 通知 · Webhook 测试',
+                '这是一条来自 EmbyQ 的测试通知。',
+            ),
+        }
+        return templates.get(event_type, ('', ''))
+
+    def _build_season_suffix(self, season_number):
+        try:
+            value = int(season_number or 0)
+        except Exception:
+            value = 0
+        return f' 第{value}季' if value > 0 else ''
 
     def _resolve_body_mode(self, config):
         body_mode = str(config.get('body_mode') or '').strip().lower()
