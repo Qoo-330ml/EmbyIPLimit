@@ -1,4 +1,4 @@
-# EmbyQ（原 EmbyIPLimit）- v1.4.3
+# EmbyQ（原 EmbyIPLimit）- v1.4.4
 
 ## 更新日志
 
