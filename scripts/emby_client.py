@@ -1,7 +1,7 @@
 import copy
 import logging
 
-import requests
+from network.http_session import create_session
 
 logger = logging.getLogger(__name__)
 
@@ -10,8 +10,7 @@ class EmbyClient:
     def __init__(self, server_url, api_key):
         self.server_url = server_url.rstrip('/')
         self.api_key = api_key
-        self.session = requests.Session()
-        self.session.headers.update({'X-Emby-Token': self.api_key})
+        self.session = create_session({'X-Emby-Token': self.api_key})
 
     def get_session(self):
         return self.session
@@ -58,6 +57,22 @@ class EmbyClient:
         except Exception as e:
             logger.error('设置用户策略失败: user_id=%s, error=%s', user_id, e)
             return False
+
+    def update_user_policy_fields(self, user_id, updates):
+        try:
+            current_policy = self.get_user_policy(user_id)
+            if not current_policy:
+                logger.error('更新用户策略字段失败: user_id=%s, reason=no_current_policy', user_id)
+                return False
+            merged_policy = copy.deepcopy(current_policy)
+            merged_policy.update(updates or {})
+            return self.set_user_policy(user_id, merged_policy)
+        except Exception as e:
+            logger.error('更新用户策略字段失败: user_id=%s, error=%s', user_id, e)
+            return False
+
+    def set_user_disabled(self, user_id, disabled):
+        return self.update_user_policy_fields(user_id, {'IsDisabled': bool(disabled)})
 
     def set_user_password(self, user_id, password):
         try:

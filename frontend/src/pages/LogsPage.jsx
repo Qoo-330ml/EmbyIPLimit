@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle, RefreshCw, WrapText } from 'lucide-react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -42,7 +42,7 @@ export default function LogsPage() {
     shouldStickToBottomRef.current = distanceFromBottom < 48
   }
 
-  const loadLogs = async ({ forceScroll = false } = {}) => {
+  const loadLogs = useCallback(async ({ forceScroll = false } = {}) => {
     try {
       const data = await apiRequest('/admin/logs')
       const nextLogs = data.logs || ''
@@ -60,11 +60,11 @@ export default function LogsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     loadLogs({ forceScroll: true })
-  }, [])
+  }, [loadLogs])
 
   useEffect(() => {
     if (!autoRefresh) return undefined
@@ -72,7 +72,7 @@ export default function LogsPage() {
       loadLogs()
     }, 3000)
     return () => window.clearInterval(timer)
-  }, [autoRefresh])
+  }, [autoRefresh, loadLogs])
 
   const allLines = useMemo(() => (logs ? logs.split('\n') : []), [logs])
   const visibleLines = useMemo(() => allLines.slice(-MAX_VISIBLE_LINES), [allLines])

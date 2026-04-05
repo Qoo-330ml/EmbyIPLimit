@@ -3,7 +3,7 @@ from __future__ import annotations
 import requests
 from requests import exceptions as requests_exceptions
 
-from session_manager import get_session
+from network.http_session import get_session
 
 
 class TMDBClient:

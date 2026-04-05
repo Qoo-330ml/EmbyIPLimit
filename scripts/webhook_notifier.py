@@ -3,13 +3,14 @@ import logging
 import time
 from typing import Any
 
-import requests
+from network.http_session import create_session
 
 logger = logging.getLogger(__name__)
 
 
 class WebhookNotifier:
     def __init__(self, config):
+        self.session = create_session()
         self.update_config(config or {})
 
     def update_config(self, config):
@@ -133,7 +134,7 @@ class WebhookNotifier:
         if self.body_mode == 'raw':
             body = self._render_text_body(event_type, payload)
             headers.setdefault('Content-Type', 'text/plain; charset=utf-8')
-            return requests.post(
+            return self.session.post(
                 self.url,
                 data=body.encode('utf-8'),
                 headers=headers,
@@ -143,7 +144,7 @@ class WebhookNotifier:
         if self.body_mode == 'form':
             body = self._render_structured_body(event_type, payload)
             headers.setdefault('Content-Type', 'application/x-www-form-urlencoded; charset=utf-8')
-            return requests.post(
+            return self.session.post(
                 self.url,
                 data=body,
                 headers=headers,
@@ -152,7 +153,7 @@ class WebhookNotifier:
 
         body = self._render_structured_body(event_type, payload)
         headers.setdefault('Content-Type', 'application/json; charset=utf-8')
-        return requests.post(
+        return self.session.post(
             self.url,
             json=body,
             headers=headers,

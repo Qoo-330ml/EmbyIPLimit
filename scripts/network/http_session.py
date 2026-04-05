@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import requests
 
 
@@ -14,7 +16,7 @@ class ProxySession:
 
     def update_proxy(self, config):
         enabled = config.get('enabled', False)
-        url = config.get('url', '').strip()
+        url = (config.get('url') or '').strip()
 
         self._proxy_config = {}
 
@@ -22,21 +24,14 @@ class ProxySession:
             self._session.proxies.clear()
             return
 
-        # Auto-detect protocol by prefix
-        if url.startswith('socks5://') or url.startswith('socks5h://'):
-            self._proxy_config['http'] = url
-            self._proxy_config['https'] = url
-        elif url.startswith('https://'):
-            self._proxy_config['http'] = url
-            self._proxy_config['https'] = url
-        elif url.startswith('http://'):
-            self._proxy_config['http'] = url
-            self._proxy_config['https'] = url
+        if url.startswith(('socks5://', 'socks5h://', 'https://', 'http://')):
+            proxy_url = url
         else:
-            # No scheme provided, treat as http
-            self._proxy_config['http'] = 'http://' + url
-            self._proxy_config['https'] = 'http://' + url
+            proxy_url = 'http://' + url
 
+        self._proxy_config['http'] = proxy_url
+        self._proxy_config['https'] = proxy_url
+        self._session.proxies.clear()
         self._session.proxies.update(self._proxy_config)
 
     def get_session(self):
@@ -50,8 +45,25 @@ def get_session():
     return ProxySession().get_session()
 
 
+def bind_shared_proxy_config(session):
+    session = session or requests.Session()
+    session.proxies = get_session().proxies
+    return session
+
+
+def create_session(default_headers=None):
+    session = bind_shared_proxy_config(requests.Session())
+    if default_headers:
+        session.headers.update(default_headers)
+    return session
+
+
 def update_proxy_config(config):
     ProxySession().update_proxy(config)
+
+
+def apply_proxy_config(session):
+    return bind_shared_proxy_config(session)
 
 
 def is_proxy_enabled():

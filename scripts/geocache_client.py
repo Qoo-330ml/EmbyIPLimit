@@ -4,7 +4,7 @@ import os
 import time
 from typing import Any
 
-import requests
+from network.http_session import create_session
 
 logger = logging.getLogger(__name__)
 
@@ -32,12 +32,13 @@ class GeoCacheClient:
     def __init__(self, base_url: str = None, api_key: str = None, timeout: int = 10, emby_server_info: dict = None):
         _encrypted_url = "cG90LnVvaHpkcC5laGNhY29lZy8vOnNwdHRo"
         _encrypted_key = "eURuZ1RrNjdLZFI3cUlPaXREWDJKYnNBcE9NUlhQS2NjbThoOTFzaA=="
-        
+
         self.base_url = (base_url or _decode(_encrypted_url)).rstrip("/")
         self.api_key = api_key or _decode(_encrypted_key)
         self.timeout = timeout
         self.enabled = True
         self.emby_server_info = emby_server_info or {}
+        self.session = create_session()
 
     def update_config(self, base_url: str = None, api_key: str = None):
         """更新配置"""
@@ -51,41 +52,18 @@ class GeoCacheClient:
                   street: str = None, isp: str = None, latitude: float = None,
                   longitude: float = None, provider: str = None,
                   client_version: str = None) -> bool:
-        """
-        向 GeoCache 提交 IP 归属地数据
-
-        Args:
-            ip: IP 地址
-            location: 位置（IP归属地）
-            district: 区
-            street: 街道
-            isp: 网络服务商
-            latitude: 纬度
-            longitude: 经度
-            provider: 提供商标识
-            client_version: 客户端版本
-
-        Returns:
-            bool: 是否提交成功
-        """
-        if not self.enabled:
+        if not self.enabled or not ip:
             return False
 
-        if not ip:
-            return False
-
-        # 如果未提供provider，则使用Emby服务器信息生成
         if provider is None:
             server_name = self.emby_server_info.get('ServerName', 'EmbyServer')
             version = self.emby_server_info.get('Version', 'Unknown')
             provider = f"{server_name} - {version}"
 
-        # 如果未提供client_version，则使用EmbyQ版本号
         if client_version is None:
             client_version = f"EmbyQ v{_get_version()}"
 
         url = f"{self.base_url}/v1/ip/report"
-
         payload = {
             "ip": ip,
             "location": location,
@@ -97,14 +75,13 @@ class GeoCacheClient:
             "provider": provider,
             "client_version": client_version
         }
-
         headers = {
             "Content-Type": "application/json",
             "X-API-Key": self.api_key
         }
 
         try:
-            response = requests.post(
+            response = self.session.post(
                 url,
                 json=payload,
                 headers=headers,
@@ -112,20 +89,11 @@ class GeoCacheClient:
             )
             response.raise_for_status()
             return True
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             logger.warning('GeoCache 提交失败: ip=%s, error=%s', ip, e)
             return False
 
     def report_location_info(self, location_info: dict[str, Any]) -> bool:
-        """
-        从位置信息字典提交数据到 GeoCache
-
-        Args:
-            location_info: 位置信息字典，包含 ip, location, district, street, isp, latitude, longitude 等
-
-        Returns:
-            bool: 是否提交成功
-        """
         if not location_info or not location_info.get("ip"):
             return False
 
@@ -140,25 +108,13 @@ class GeoCacheClient:
         )
 
     def lookup_ip(self, ip: str) -> dict[str, Any] | None:
-        """
-        从 GeoCache 查询 IP 归属地信息
-
-        Args:
-            ip: IP 地址
-
-        Returns:
-            dict: 归属地信息字典，查询失败返回 None
-        """
-        if not self.enabled:
-            return None
-
-        if not ip:
+        if not self.enabled or not ip:
             return None
 
         url = f"{self.base_url}/v1/ip/lookup"
 
         try:
-            response = requests.get(
+            response = self.session.get(
                 url,
                 params={"ip": ip},
                 timeout=self.timeout
@@ -177,31 +133,25 @@ class GeoCacheClient:
                     "isp": data.get("isp"),
                     "latitude": data.get("latitude"),
                     "longitude": data.get("longitude"),
-                    "formatted": "",  # GeoCache 不提供格式化信息，由调用方处理
+                    "formatted": "",
                     "ts": int(time.time())
                 }
             logger.debug('GeoCache 查询未命中: ip=%s', ip)
             return None
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             logger.warning('GeoCache 查询失败: ip=%s, error=%s', ip, e)
             return None
 
     def health_check(self) -> bool:
-        """
-        检查 GeoCache 服务是否可用
-
-        Returns:
-            bool: 服务是否可用
-        """
         if not self.enabled:
             return False
 
         url = f"{self.base_url}/healthz"
 
         try:
-            response = requests.get(url, timeout=self.timeout)
+            response = self.session.get(url, timeout=self.timeout)
             response.raise_for_status()
             data = response.json()
             return data.get("ok", False)
-        except requests.exceptions.RequestException:
+        except Exception:
             return False

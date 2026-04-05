@@ -38,11 +38,15 @@ class ShadowLibrarySyncer:
         movies = self.emby_client.get_movies()
         if not movies:
             logger.warning("⚠️ 未获取到任何电影")
-            return {'synced': 0, 'errors': 0}
+            return {'synced': 0, 'skipped': 0, 'errors': 0}
 
         result = self.shadow_library.sync_movies(movies)
         logger.info(f"📽 电影同步完成: {result['synced']} 部")
-        return result
+        return {
+            'synced': result.get('synced', 0),
+            'skipped': result.get('skipped', 0),
+            'errors': result.get('errors', 0),
+        }
 
     def sync_series(self):
         """同步所有剧集（包含季信息）"""
@@ -58,10 +62,11 @@ class ShadowLibrarySyncer:
         for series in series_list:
             try:
                 result = self._sync_single_series(series)
-                if result.get('skipped'):
-                    skipped += 1
-                else:
+                if result.get('synced', 0) > 0:
                     synced += 1
+                else:
+                    skipped += 1
+                errors += int(result.get('errors', 0) or 0)
             except Exception as e:
                 logger.error(f"同步剧集失败 [{series.get('Name')}]: {e}")
                 errors += 1
@@ -78,10 +83,14 @@ class ShadowLibrarySyncer:
 
         seasons = self.emby_client.get_series_seasons(series_id)
         if not seasons:
-            return {'skipped': 1}
+            return {'synced': 0, 'skipped': 1, 'errors': 0}
 
         result = self.shadow_library.sync_seasons(series_id, seasons, current_series_name=series_name)
-        return result
+        return {
+            'synced': result.get('synced', 0),
+            'skipped': result.get('skipped', 0),
+            'errors': result.get('errors', 0),
+        }
 
     def get_stats(self):
         """获取影子库统计信息"""

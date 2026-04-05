@@ -2,7 +2,7 @@ name: Build and Push Multi-arch Docker Image
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, test ]
     paths-ignore:
       - 'README.md'
   workflow_dispatch:
@@ -55,6 +55,31 @@ jobs:
         id: date
         run: echo "DATE=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
 
+      - name: Decide Docker tags
+        id: tags
+        run: |
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+            {
+              echo 'TAGS<<EOF'
+              echo 'pdzhou/embyq:latest'
+              echo "pdzhou/embyq:${{ steps.date.outputs.DATE }}"
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
+          elif [ "${GITHUB_REF_NAME}" = "test" ]; then
+            {
+              echo 'TAGS<<EOF'
+              echo 'pdzhou/embyq:test'
+              echo "pdzhou/embyq:test-${{ steps.date.outputs.DATE }}"
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo 'TAGS<<EOF'
+              echo "pdzhou/embyq:${GITHUB_REF_NAME}-${{ steps.date.outputs.DATE }}"
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build and push multi-arch Docker image
         uses: docker/build-push-action@v6
         with:
@@ -64,6 +89,4 @@ jobs:
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: |
-            pdzhou/embyq:latest
-            pdzhou/embyq:${{ steps.date.outputs.DATE }}
+          tags: ${{ steps.tags.outputs.TAGS }}

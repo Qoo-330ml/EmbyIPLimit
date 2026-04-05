@@ -5,18 +5,10 @@ import importlib
 import shutil
 from typing import Iterable
 
+from app_factory import create_app
 from config_loader import load_config
-from database import DatabaseManager
-from emby_client import EmbyClient
 from logger import setup_logging, info, error
-from monitor import EmbyMonitor
-from security import EmbySecurity
-from session_manager import update_proxy_config
-from shadow_library import ShadowLibrary
-from shadow_library_syncer import ShadowLibrarySyncer
-from tmdb_client import TMDBClient
-from web_server import WebServer
-from wish_store import WishStore
+from network.http_session import update_proxy_config
 
 
 def _check_python_packages(packages: Iterable[str]) -> list[str]:
@@ -86,44 +78,8 @@ def main() -> int:
     if args.self_check:
         return 0
 
-    db_manager = DatabaseManager(config['database']['name'])
-    wish_store = WishStore(db_manager.db_path)
-    emby_client = EmbyClient(server_url=config['emby']['server_url'], api_key=config['emby']['api_key'])
-    security = EmbySecurity(emby_client)
-    tmdb_client = TMDBClient(config.get('tmdb', {}))
-
-    shadow_library = ShadowLibrary(db_manager.db_path)
-    shadow_syncer = ShadowLibrarySyncer(emby_client, shadow_library)
-
-    from location_service import LocationService
-
-    use_geocache = config.get('ip_location', {}).get('use_geocache', False)
-    emby_server_info = emby_client.get_server_info()
-    location_service = LocationService(use_hiofd=use_geocache, db_manager=db_manager, emby_server_info=emby_server_info)
-
-    monitor = EmbyMonitor(
-        db_manager=db_manager,
-        emby_client=emby_client,
-        security_client=security,
-        config=config,
-        location_service=location_service,
-    )
-
-    web_server = WebServer(
-        db_manager=db_manager,
-        emby_client=emby_client,
-        security_client=security,
-        config=config,
-        location_service=location_service,
-        monitor=monitor,
-        tmdb_client=tmdb_client,
-        wish_store=wish_store,
-        shadow_library=shadow_library,
-        shadow_syncer=shadow_syncer,
-    )
-
-    web_server.start()
-    monitor.run()
+    app = create_app(config)
+    app.start()
     return 0
 
 
