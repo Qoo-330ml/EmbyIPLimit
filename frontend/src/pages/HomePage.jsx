@@ -151,10 +151,11 @@ function WishPosterCard({ item, submittingId, onSubmit, onShowSeasonDetail }) {
 
   const isInLibrary = item.in_library
   const isPartiallyAvailable = item.media_type === 'tv' && isInLibrary && item.library_season_count > 0 && item.library_season_count < (item.tmdb_season_count || 0)
+  const shouldSelectSeason = item.media_type === 'tv' && !item.is_season_request && !isApproved && (!isInLibrary || isPartiallyAvailable)
 
   const handleSubmit = () => {
     if (isSubmitting) return
-    if (isPartiallyAvailable) {
+    if (shouldSelectSeason) {
       if (onShowSeasonDetail) onShowSeasonDetail(item)
       return
     }
@@ -163,7 +164,7 @@ function WishPosterCard({ item, submittingId, onSubmit, onShowSeasonDetail }) {
   }
 
   const handleCardClick = () => {
-    if (isPartiallyAvailable) {
+    if (shouldSelectSeason) {
       if (onShowSeasonDetail) onShowSeasonDetail(item)
     }
   }
@@ -171,7 +172,7 @@ function WishPosterCard({ item, submittingId, onSubmit, onShowSeasonDetail }) {
   return (
     <div
       role='button'
-      tabIndex={isPartiallyAvailable ? 0 : isRequested || isApproved ? -1 : 0}
+      tabIndex={shouldSelectSeason ? 0 : isRequested || isApproved ? -1 : 0}
       className='flex h-full flex-col overflow-hidden rounded-lg border bg-card text-left transition-transform hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md'
       onClick={handleCardClick}
       onKeyDown={(event) => {
@@ -193,6 +194,13 @@ function WishPosterCard({ item, submittingId, onSubmit, onShowSeasonDetail }) {
               <Angry className='h-5 w-5' />
             </div>
             <span className='rounded-full bg-black/40 px-2.5 py-1 text-xs font-medium'>部分缺失</span>
+          </div>
+        ) : shouldSelectSeason ? (
+          <div className='absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/45 text-white'>
+            <div className='flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/90 shadow-lg'>
+              <Tv className='h-5 w-5' />
+            </div>
+            <span className='rounded-full bg-black/40 px-2.5 py-1 text-xs font-medium'>按季选择</span>
           </div>
         ) : isApproved ? (
           <div className='absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/45 text-white'>
@@ -254,6 +262,8 @@ function WishPosterCard({ item, submittingId, onSubmit, onShowSeasonDetail }) {
           className={`h-10 w-full shrink-0 rounded-lg px-3 text-sm font-medium shadow-sm ${
             isPartiallyAvailable
               ? 'border-2 border-red-500 bg-red-500 text-white hover:bg-red-600'
+              : shouldSelectSeason
+                ? 'border-2 border-blue-500 bg-blue-500 text-white hover:bg-blue-600'
               : isApproved
                 ? 'border-2 border-teal-500 bg-teal-500 text-white hover:bg-teal-600'
                 : isRequested && !isInLibrary
@@ -272,6 +282,8 @@ function WishPosterCard({ item, submittingId, onSubmit, onShowSeasonDetail }) {
             <LoaderCircle className='mr-2 h-4 w-4 animate-spin' />
           ) : isPartiallyAvailable ? (
             <Angry className='mr-2 h-4 w-4' />
+          ) : shouldSelectSeason ? (
+            <Tv className='mr-2 h-4 w-4' />
           ) : isApproved ? (
             <CircleCheckBig className='mr-2 h-4 w-4' />
           ) : isRequested && !isInLibrary ? (
@@ -285,6 +297,8 @@ function WishPosterCard({ item, submittingId, onSubmit, onShowSeasonDetail }) {
             ? '提交中...'
             : isPartiallyAvailable
               ? '部分缺失'
+              : shouldSelectSeason
+                ? '选择季'
               : isApproved
                 ? '已采纳'
                 : isRequested && !isInLibrary

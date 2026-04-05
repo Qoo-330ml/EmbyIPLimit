@@ -317,6 +317,16 @@ class WebServer:
                 item.get('season_number'),
             )
             try:
+                if item.get('media_type') == 'tv':
+                    try:
+                        season_number = max(int(item.get('season_number') or 0), 0)
+                    except Exception:
+                        season_number = 0
+                    if season_number == 0:
+                        tmdb_id = int(item.get('tmdb_id'))
+                        tmdb_seasons = (self.tmdb_client.get_tv_seasons(tmdb_id) or {}).get('seasons') or []
+                        if len(tmdb_seasons) > 1:
+                            return jsonify({'error': '该剧包含多季，请先选择具体季再提交求片'}), 400
                 record = self.wish_store.add_request(item)
                 message = '已加入想看清单' if record.get('created') else '该内容已在求片清单中'
                 status_code = 201 if record.get('created') else 200
