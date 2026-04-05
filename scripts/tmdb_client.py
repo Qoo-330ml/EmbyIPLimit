@@ -96,14 +96,9 @@ class TMDBClient:
                 }
             )
 
-        results.sort(
-            key=lambda current: (
-                1 if current.get('poster_url') else 0,
-                current.get('release_date') or '',
-                current.get('title') or '',
-            ),
-            reverse=True,
-        )
+        # 保留 TMDB 返回的原始顺序。
+        # TMDB 搜索结果默认已经按相关度排序；这里如果再次按海报/日期等字段重排，
+        # 会把最匹配的内容打散，导致前端看起来像“乱序”。
         return {
             'results': results,
             'page': int(payload.get('page') or page or 1),
