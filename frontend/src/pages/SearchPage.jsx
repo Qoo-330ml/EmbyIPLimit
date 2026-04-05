@@ -94,8 +94,17 @@ export default function SearchPage() {
           </CardHeader>
           <CardContent className='space-y-1 text-sm'>
             <p>时间：{ban_info.timestamp}</p>
-            <p>触发IP：{ban_info.trigger_ip}</p>
-            <p>并发会话：{ban_info.active_sessions}</p>
+            {ban_info.reason_type === 'expired' ? (
+              <>
+                <p>原因：账号到期自动禁用</p>
+              </>
+            ) : (
+              <>
+                <p>原因：并发会话触发封禁</p>
+                <p>触发IP：{ban_info.trigger_ip}</p>
+                <p>并发会话：{ban_info.active_sessions}</p>
+              </>
+            )}
           </CardContent>
         </Card>
       ) : null}

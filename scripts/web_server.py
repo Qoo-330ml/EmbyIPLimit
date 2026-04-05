@@ -998,11 +998,14 @@ class WebServer:
     def _serialize_ban_info(self, record):
         if not record:
             return None
+        action = record[3]
+        reason_type = 'expired' if action == 'DISABLE_EXPIRED' else 'concurrent_sessions'
         return {
             'timestamp': record[0],
             'trigger_ip': record[1],
             'active_sessions': record[2],
-            'action': record[3],
+            'action': action,
+            'reason_type': reason_type,
         }
 
     def _get_user_active_sessions(self, user_id):

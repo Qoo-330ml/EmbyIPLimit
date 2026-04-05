@@ -215,7 +215,7 @@ class DatabaseManager:
                 '''
                 SELECT timestamp, trigger_ip, active_sessions, action
                 FROM security_log
-                WHERE username = ? AND action = 'DISABLE'
+                WHERE username = ? AND action IN ('DISABLE', 'DISABLE_EXPIRED')
                 ORDER BY timestamp DESC
                 LIMIT 1
                 ''',

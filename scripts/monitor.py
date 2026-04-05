@@ -467,7 +467,7 @@ class EmbyMonitor:
                             'username': username,
                             'trigger_ip': 'system',
                             'active_sessions': 0,
-                            'action': 'DISABLE'
+                            'action': 'DISABLE_EXPIRED'
                         }
                         self.db.log_security_event(log_data)
 
