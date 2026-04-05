@@ -478,12 +478,22 @@ class WebServer:
             data = request.get_json(silent=True) or {}
             user_id = data.get('user_id')
             action = data.get('action')
+            username = (data.get('username') or '').strip()
             if not user_id or action not in {'ban', 'unban'}:
                 return jsonify({'error': '参数错误'}), 400
 
-            success = self.security_client.disable_user(user_id) if action == 'ban' else self.security_client.enable_user(user_id)
+            success = self.security_client.disable_user(user_id, username=username) if action == 'ban' else self.security_client.enable_user(user_id, username=username)
             if not success:
                 return jsonify({'error': f'用户{"封禁" if action == "ban" else "解封"}失败'}), 500
+
+            if self.monitor and self.monitor.webhook_notifier and self.monitor.webhook_notifier.is_enabled():
+                self.monitor.webhook_notifier.send(
+                    'user_banned_manual' if action == 'ban' else 'user_unbanned_manual',
+                    {
+                        'username': username or user_id,
+                        'user_id': user_id,
+                    },
+                )
 
             return jsonify({'success': True})
 

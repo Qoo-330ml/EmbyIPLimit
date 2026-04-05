@@ -244,6 +244,14 @@ class WebhookNotifier:
                 'EmbyQ · 账号封禁',
                 '用户：{username}\n位置：{location}\nIP：{ip_address} ({ip_type})\n并发会话：{session_count}\n结果：已自动封禁',
             ),
+            'user_banned_manual': (
+                'EmbyQ · 用户已手动禁用',
+                '用户：{username}\n用户 ID：{user_id}\n操作：手动禁用',
+            ),
+            'user_unbanned_manual': (
+                'EmbyQ · 用户已手动启用',
+                '用户：{username}\n用户 ID：{user_id}\n操作：手动启用',
+            ),
             'guest_request_created': (
                 'EmbyQ · 新的游客求片',
                 '片名：{request_title}{season_suffix}\n类型：{media_type}\nTMDB：{tmdb_id}\n状态：待处理',
