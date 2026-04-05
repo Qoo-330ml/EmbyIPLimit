@@ -221,6 +221,7 @@ class WebhookNotifier:
         normalized = dict(payload or {})
         normalized.setdefault('timestamp', self._now_str())
         normalized.setdefault('season_suffix', self._build_season_suffix(normalized.get('season_number')))
+        normalized.setdefault('media_type', self._humanize_media_type(normalized.get('media_type')))
 
         title_template, content_template = self._get_event_templates(event_type)
         original_title = normalized.get('title')
@@ -240,24 +241,24 @@ class WebhookNotifier:
     def _get_event_templates(self, event_type):
         templates = {
             'user_disabled': (
-                'EmbyQ 通知 · 账号封禁',
-                '用户 {username} 在 {location} 使用 {ip_address} ({ip_type}) 登录，检测到 {session_count} 个并发会话，已自动封禁。',
+                'EmbyQ · 账号封禁',
+                '用户：{username}\n位置：{location}\nIP：{ip_address} ({ip_type})\n并发会话：{session_count}\n结果：已自动封禁',
             ),
             'guest_request_created': (
-                'EmbyQ 通知 · 游客求片',
-                '收到新的求片：{request_title}{season_suffix}（TMDB: {tmdb_id}）。',
+                'EmbyQ · 新的游客求片',
+                '片名：{request_title}{season_suffix}\n类型：{media_type}\nTMDB：{tmdb_id}\n状态：待处理',
             ),
             'invite_registered': (
-                'EmbyQ 通知 · 邀请注册成功',
-                '用户 {username} 已通过邀请码完成注册，用户 ID：{user_id}。',
+                'EmbyQ · 邀请注册成功',
+                '用户：{username}\n用户 ID：{user_id}\n邀请码：{invite_code}',
             ),
             'shadow_sync_completed': (
-                'EmbyQ 通知 · 影子库同步完成',
-                '影子库同步完成：电影新增 {movies_synced} 部，失败 {movies_failed} 部；剧集新增 {series_synced} 部，失败 {series_failed} 部。',
+                'EmbyQ · 影子库同步完成',
+                '电影：新增 {movies_synced}，失败 {movies_failed}\n剧集：新增 {series_synced}，失败 {series_failed}',
             ),
             'shadow_sync_failed': (
-                'EmbyQ 通知 · 影子库同步失败',
-                '影子库同步失败：{error}',
+                'EmbyQ · 影子库同步失败',
+                '错误信息：{error}',
             ),
             'test': (
                 'EmbyQ 通知 · Webhook 测试',
@@ -272,6 +273,16 @@ class WebhookNotifier:
         except Exception:
             value = 0
         return f' 第{value}季' if value > 0 else ''
+
+    def _humanize_media_type(self, media_type):
+        mapping = {
+            'movie': '电影',
+            'tv': '剧集',
+            'series': '剧集',
+        }
+        if media_type is None:
+            return ''
+        return mapping.get(str(media_type).lower(), str(media_type))
 
     def _resolve_body_mode(self, config):
         body_mode = str(config.get('body_mode') or '').strip().lower()
