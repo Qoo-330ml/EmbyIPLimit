@@ -15,6 +15,7 @@ venv/
 
 # App data
 /data/
+scripts/data/
 
 # Frontend build output
 /frontend/dist/
