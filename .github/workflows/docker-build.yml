@@ -68,8 +68,8 @@ jobs:
           elif [ "${GITHUB_REF_NAME}" = "test" ]; then
             {
               echo 'TAGS<<EOF'
-              echo 'pdzhou/embyq:test'
-              echo "pdzhou/embyq:test-${{ steps.date.outputs.DATE }}"
+              echo 'pdzhou/embyq:pre'
+              echo "pdzhou/embyq:pre-${{ steps.date.outputs.DATE }}"
               echo 'EOF'
             } >> "$GITHUB_OUTPUT"
           else
