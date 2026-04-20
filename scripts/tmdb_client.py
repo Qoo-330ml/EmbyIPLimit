@@ -1,0 +1,189 @@
+from __future__ import annotations
+
+import requests
+from requests import exceptions as requests_exceptions
+
+from network.http_session import get_session
+
+
+class TMDBClient:
+    def __init__(self, config=None):
+        self.session = get_session()
+        self.update_config(config or {})
+
+    def update_config(self, config):
+        config = config or {}
+        self.enabled = bool(config.get('enabled', False))
+        self.api_key = (config.get('api_key') or '').strip()
+        self.language = (config.get('language') or 'zh-CN').strip() or 'zh-CN'
+        self.include_adult = bool(config.get('include_adult', False))
+        self.image_base_url = (config.get('image_base_url') or 'https://image.tmdb.org/t/p/w342').rstrip('/')
+
+    def is_ready(self):
+        return self.enabled and bool(self.api_key)
+
+    def search_multi(self, query, page=1):
+        query = (query or '').strip()
+        if not query:
+            return {'results': [], 'page': 1, 'total_pages': 1, 'total_results': 0}
+        if not self.enabled:
+            raise RuntimeError('TMDB 搜索未启用')
+        if not self.api_key:
+            raise RuntimeError('TMDB API Key 未配置')
+
+        try:
+            page = max(int(page or 1), 1)
+        except Exception:
+            page = 1
+
+        try:
+            response = self.session.get(
+                'https://api.themoviedb.org/3/search/multi',
+                params={
+                    'api_key': self.api_key,
+                    'query': query,
+                    'language': self.language,
+                    'include_adult': str(self.include_adult).lower(),
+                    'page': page,
+                },
+                timeout=15,
+            )
+        except requests_exceptions.Timeout as exc:
+            raise RuntimeError('TMDB 搜索超时，请稍后重试') from exc
+        except requests_exceptions.RequestException as exc:
+            raise RuntimeError(f'TMDB 请求失败: {exc}') from exc
+
+        if response.status_code != 200:
+            if response.status_code == 401:
+                raise RuntimeError('TMDB API Key 无效')
+            raise RuntimeError(f'TMDB 搜索失败: HTTP {response.status_code}')
+
+        payload = response.json() or {}
+        results = []
+        for item in payload.get('results') or []:
+            media_type = item.get('media_type')
+            if media_type not in {'movie', 'tv'}:
+                continue
+
+            title = (item.get('title') or item.get('name') or '').strip()
+            if not title:
+                continue
+
+            original_title = (
+                item.get('original_title')
+                or item.get('original_name')
+                or item.get('title')
+                or item.get('name')
+                or ''
+            ).strip()
+            release_date = (item.get('release_date') or item.get('first_air_date') or '').strip()
+            poster_path = item.get('poster_path') or ''
+            backdrop_path = item.get('backdrop_path') or ''
+
+            results.append(
+                {
+                    'tmdb_id': item.get('id'),
+                    'media_type': media_type,
+                    'title': title,
+                    'original_title': original_title,
+                    'release_date': release_date,
+                    'year': release_date[:4] if release_date else '',
+                    'overview': (item.get('overview') or '').strip(),
+                    'poster_path': poster_path,
+                    'poster_url': self._build_image_url(poster_path),
+                    'backdrop_path': backdrop_path,
+                    'backdrop_url': self._build_image_url(backdrop_path),
+                }
+            )
+
+        # 保留 TMDB 返回的原始顺序。
+        # TMDB 搜索结果默认已经按相关度排序；这里如果再次按海报/日期等字段重排，
+        # 会把最匹配的内容打散，导致前端看起来像“乱序”。
+        return {
+            'results': results,
+            'page': int(payload.get('page') or page or 1),
+            'total_pages': int(payload.get('total_pages') or 1),
+            'total_results': int(payload.get('total_results') or len(results)),
+        }
+
+    def _build_image_url(self, path):
+        if not path:
+            return ''
+        return f'{self.image_base_url}{path}'
+
+    def get_tv_seasons(self, tmdb_id):
+        if not self.enabled:
+            raise RuntimeError('TMDB 未启用')
+        if not self.api_key:
+            raise RuntimeError('TMDB API Key 未配置')
+
+        try:
+            response = self.session.get(
+                f'https://api.themoviedb.org/3/tv/{tmdb_id}',
+                params={
+                    'api_key': self.api_key,
+                    'language': self.language,
+                },
+                timeout=15,
+            )
+        except requests_exceptions.Timeout as exc:
+            raise RuntimeError('TMDB 请求超时，请稍后重试') from exc
+        except requests_exceptions.RequestException as exc:
+            raise RuntimeError(f'TMDB 请求失败: {exc}') from exc
+
+        if response.status_code != 200:
+            if response.status_code == 404:
+                return {'seasons': []}
+            if response.status_code == 401:
+                raise RuntimeError('TMDB API Key 无效')
+            raise RuntimeError(f'TMDB 请求失败: HTTP {response.status_code}')
+
+        payload = response.json() or []
+        seasons = payload.get('seasons') or []
+        result = []
+        for season in seasons:
+            season_number = season.get('season_number')
+            if season_number is None or season_number == 0:
+                continue
+            result.append({
+                'season_number': season_number,
+                'name': season.get('name') or f'第 {season_number} 季',
+                'poster_path': season.get('poster_path'),
+                'poster_url': self._build_image_url(season.get('poster_path')),
+                'air_date': season.get('air_date') or '',
+            })
+        return {'seasons': result}
+
+    def get_trending_backdrops(self, limit=5):
+        if not self.enabled or not self.api_key:
+            return []
+        try:
+            response = self.session.get(
+                'https://api.themoviedb.org/3/trending/all/week',
+                params={
+                    'api_key': self.api_key,
+                    'language': self.language,
+                    'include_adult': str(self.include_adult).lower(),
+                },
+                timeout=15,
+            )
+            if response.status_code != 200:
+                return []
+            payload = response.json() or {}
+            results = []
+            for item in payload.get('results') or []:
+                backdrop_path = item.get('backdrop_path')
+                if not backdrop_path:
+                    continue
+                title = (item.get('title') or item.get('name') or '').strip()
+                if not title:
+                    continue
+                results.append({
+                    'backdrop_url': f'https://image.tmdb.org/t/p/original{backdrop_path}',
+                    'title': title,
+                })
+                if len(results) >= limit:
+                    break
+            return results
+        except Exception:
+            return []

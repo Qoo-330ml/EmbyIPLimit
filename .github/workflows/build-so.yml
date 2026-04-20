@@ -1,0 +1,93 @@
+name: Build Multi-arch .so via Cython
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag (e.g. v1.0.0)'
+        required: false
+        default: ''
+  push:
+    branches: [ main ]
+    paths:
+      - 'scripts/geocache_client.py'
+      - '.github/workflows/build-so.yml'
+
+jobs:
+  build-so:
+    name: Build .so (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-latest
+            py: 'cp312'
+          - arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-latest
+            py: 'cp312'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Build in Alpine via Docker
+        run: |
+          docker run --rm --platform ${{ matrix.platform }} \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace \
+            python:3.12-alpine \
+            sh -c '
+              apk add --no-cache gcc musl-dev python3-dev
+              pip install --break-system-packages cython
+
+              cd scripts
+              cythonize -3 -i geocache_client.py
+
+              echo "=== Generated files ==="
+              find . -name "*.so" -o -name "*.cpython*.so" | while read f; do
+                echo "$f ($(file "$f" | cut -d: -f2))"
+              done
+            '
+
+      - name: Collect .so artifacts
+        run: |
+          mkdir -p dist
+          # Copy all .so files with arch suffix
+          for f in scripts/*.cpython*.so; do
+            base=$(basename "$f")
+            cp "$f" "dist/${base%.cpython*.so}-${{ matrix.arch }}.cpython-312-linux-gnu.so"
+          done
+          ls -la dist/
+
+      - name: Upload .so artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: geocache-client-so-${{ matrix.arch }}
+          path: dist/*.so
+          retention-days: 30
+
+  release:
+    name: Create Release
+    needs: build-so
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != ''
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Flatten artifacts
+        run: |
+          mkdir -p release
+          find artifacts -name "*.so" -exec cp {} release/ \;
+          ls -la release/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.release_tag }}-so
+          files: release/*.so
+          generate_release_notes: true

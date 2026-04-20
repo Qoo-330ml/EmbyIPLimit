@@ -1,0 +1,174 @@
+import copy
+import logging
+import os
+import shutil
+
+import yaml
+
+logger = logging.getLogger(__name__)
+
+
+def get_base_dir():
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def get_scripts_dir():
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def get_data_dir():
+    return os.path.join(get_base_dir(), 'data')
+
+
+DEFAULT_CONFIG = {
+    'emby': {
+        'server_url': '',
+        'external_url': '',
+        'api_key': '',
+    },
+    'service': {
+        'external_url': '',
+    },
+    'database': {
+        'name': 'emby_playback.db',
+    },
+    'monitor': {
+        'check_interval': 10,
+    },
+    'notifications': {
+        'enable_alerts': True,
+        'alert_threshold': 2,
+    },
+    'security': {
+        'auto_disable': True,
+        'whitelist': ['admin', 'user1', 'user2'],
+        'ipv6_prefix_length': 64,
+    },
+    'webhook': {
+        'enabled': False,
+        'url': '',
+        'timeout': 10,
+        'retry_attempts': 3,
+        'body': {
+            'title': 'Emby用户封禁通知',
+            'content': '用户 {username} 在 {location} 使用 {ip_address} ({ip_type}) 登录，检测到 {session_count} 个并发会话，已自动封禁。',
+        },
+    },
+    'ip_location': {
+        'use_geocache': False,
+    },
+    'tmdb': {
+        'enabled': True,
+        'api_key': '',
+        'language': 'zh-CN',
+        'include_adult': False,
+    },
+    'guest_request': {
+        'enabled': True,
+    },
+    'proxy': {
+        'enabled': False,
+        'http': '',
+        'https': '',
+        'socks5': '',
+    },
+    'shadow_library': {
+        'enabled': True,
+        'sync_interval': 3600,
+    },
+    'email': {
+        'enabled': False,
+        'smtp_server': 'smtp.qq.com',
+        'smtp_port': 465,
+        'sender_email': '',
+        'sender_password': '',
+        'use_ssl': True,
+    },
+    'landing': {
+        'source': 'default',
+    },
+}
+
+
+def load_config():
+    data_dir = get_data_dir()
+    scripts_dir = get_scripts_dir()
+
+    os.makedirs(data_dir, exist_ok=True)
+
+    default_config_path = os.path.join(scripts_dir, 'default_config.yaml')
+    if not os.path.exists(default_config_path):
+        logger.error('default_config.yaml 文件不存在: %s', default_config_path)
+        raise SystemExit(1)
+
+    config_file = os.path.join(data_dir, 'config.yaml')
+    if not os.path.exists(config_file):
+        shutil.copy2(default_config_path, config_file)
+        logger.warning('配置文件不存在，已从模板生成: %s', config_file)
+
+    with open(config_file, 'r', encoding='utf-8') as f:
+        user_config = yaml.safe_load(f) or {}
+
+    if user_config.get('emby', {}).get('check_interval') and not user_config.get('monitor', {}).get('check_interval'):
+        user_config.setdefault('monitor', {})['check_interval'] = user_config['emby']['check_interval']
+
+    config = copy.deepcopy(DEFAULT_CONFIG)
+    for section in user_config:
+        if section in config and isinstance(config[section], dict) and isinstance(user_config[section], dict):
+            config[section].update(user_config[section])
+        else:
+            config[section] = user_config[section]
+
+    if 'service' not in config:
+        config['service'] = {'external_url': ''}
+    if 'external_url' not in config.get('emby', {}):
+        config['emby']['external_url'] = config['emby'].get('server_url', '')
+
+    if 'check_interval' in config.get('emby', {}):
+        config['emby'].pop('check_interval', None)
+
+    required_fields = [
+        ('emby', 'api_key'),
+    ]
+
+    missing = []
+    for section, field in required_fields:
+        if not config.get(section, {}).get(field):
+            missing.append(f'{section}.{field}')
+
+    if missing:
+        logger.error('缺失必要配置项: %s', ', '.join(missing))
+        raise SystemExit(1)
+
+    logger.info('配置加载完成')
+
+    return config
+
+
+def save_config(config):
+    data_dir = get_data_dir()
+    config_file = os.path.join(data_dir, 'config.yaml')
+
+    try:
+        with open(config_file, 'w', encoding='utf-8') as f:
+            yaml.dump(config, f, default_flow_style=False, allow_unicode=True, indent=2, sort_keys=False)
+        logger.info('配置文件保存成功: %s', config_file)
+        return True
+    except Exception as e:
+        logger.exception('保存配置文件失败: %s', e)
+        return False
+
+
+def get_raw_config():
+    data_dir = get_data_dir()
+    config_file = os.path.join(data_dir, 'config.yaml')
+
+    if not os.path.exists(config_file):
+        return ''
+
+    try:
+        with open(config_file, 'r', encoding='utf-8') as f:
+            return f.read()
+    except Exception as e:
+        logger.exception('读取配置文件失败: %s', e)
+        return ''

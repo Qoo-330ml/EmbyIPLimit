@@ -1,0 +1,8 @@
+requests
+Flask
+pyyaml
+Werkzeug
+flask_login
+waitress
+qoo-ip138
+ip-hiofd

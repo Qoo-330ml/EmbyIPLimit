@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtualenv
+.venv/
+venv/
+
+# Runtime / temp
+.run/
+*.log
+*.pid
+
+# App data
+/data/
+scripts/data/
+
+# Frontend build output
+/frontend/dist/
+
+# Node / npm
+frontend/node_modules/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
