@@ -81,17 +81,22 @@ jobs:
     runs-on: ubuntu-latest
     if: always() && needs.build-so.result == 'success'
     steps:
-      - name: Download all artifacts
+      - name: Download amd64 artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: '*'
-          path: artifacts
-          merge-multiple: true
+          name: geocache-client-so-amd64
+          path: download-amd64
+
+      - name: Download arm64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: geocache-client-so-arm64
+          path: download-arm64
 
       - name: Flatten artifacts
         run: |
           mkdir -p release
-          find artifacts -name "*.so" -exec cp {} release/ \;
+          find download-amd64/ download-arm64/ -name "*.so" -exec cp {} release/ \; 2>/dev/null || true
           ls -la release/
 
       - name: Generate release tag
