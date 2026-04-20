@@ -216,7 +216,7 @@ class WebServer:
     def frontend_index_exists(self):
         return os.path.exists(os.path.join(self.frontend_dist, 'index.html'))
 
-    def start(self, host='0.0.0.0', port=5001):
+    def start(self, host='0.0.0.0', port=5000):
         if self.running:
             return
         self.running = True
