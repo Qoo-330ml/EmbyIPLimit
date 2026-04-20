@@ -8,7 +8,7 @@ on:
         required: false
         default: ''
   push:
-    branches: [ main ]
+    branches: [ main, pre ]
     paths:
       - 'scripts/geocache_client.py'
       - '.github/workflows/build-so.yml'
