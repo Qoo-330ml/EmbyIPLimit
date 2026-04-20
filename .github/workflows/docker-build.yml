@@ -2,7 +2,7 @@ name: Build and Push Multi-arch Docker Image
 
 on:
   push:
-    branches: [ main, test ]
+    branches: [ main, test, pre ]
     paths-ignore:
       - 'README.md'
   workflow_dispatch:
@@ -55,7 +55,7 @@ jobs:
         id: date
         run: echo "DATE=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
 
-      - name: Decide Docker tags
+      - name: Decide docker tags
         id: tags
         run: |
           if [ "${GITHUB_REF_NAME}" = "main" ]; then
@@ -70,6 +70,13 @@ jobs:
               echo 'TAGS<<EOF'
               echo 'pdzhou/embyq:test'
               echo "pdzhou/embyq:test-${{ steps.date.outputs.DATE }}"
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
+          elif [ "${GITHUB_REF_NAME}" = "pre" ]; then
+            {
+              echo 'TAGS<<EOF'
+              echo 'pdzhou/embyq:pre'
+              echo "pdzhou/embyq:pre-${{ steps.date.outputs.DATE }}"
               echo 'EOF'
             } >> "$GITHUB_OUTPUT"
           else
