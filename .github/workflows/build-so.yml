@@ -18,19 +18,23 @@ jobs:
     name: Build .so (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - arch: amd64
             platform: linux/amd64
             runner: ubuntu-latest
-            py: 'cp312'
           - arch: arm64
             platform: linux/arm64
             runner: ubuntu-latest
-            py: 'cp312'
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
 
       - name: Build in Alpine via Docker
         run: |
@@ -39,14 +43,14 @@ jobs:
             -w /workspace \
             python:3.12-alpine \
             sh -c '
-              apk add --no-cache gcc musl-dev python3-dev
+              apk add --no-cache gcc musl-dev python3-dev py3-setuptools
               pip install --break-system-packages cython
 
               cd scripts
               cythonize -3 -i geocache_client.py
 
               echo "=== Generated files ==="
-              find . -name "*.so" -o -name "*.cpython*.so" | while read f; do
+              find . -name "*.cpython*.so" | while read f; do
                 echo "$f ($(file "$f" | cut -d: -f2))"
               done
             '
@@ -54,11 +58,14 @@ jobs:
       - name: Collect .so artifacts
         run: |
           mkdir -p dist
-          # Copy all .so files with arch suffix
           for f in scripts/*.cpython*.so; do
+            [ -f "$f" ] || continue
             base=$(basename "$f")
-            cp "$f" "dist/${base%.cpython*.so}-${{ matrix.arch }}.cpython-312-linux-gnu.so"
+            # Extract the module name (everything before .cpython-...)
+            mod_name="${base%%.cpython-*}"
+            cp "$f" "dist/${mod_name}-${{ matrix.arch }}.cpython-312-linux-gnu.so"
           done
+          echo "=== Collected artifacts ==="
           ls -la dist/
 
       - name: Upload .so artifacts
